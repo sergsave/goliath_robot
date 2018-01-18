@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>goliath_teleop</name>
+  <version>0.1.0</version>
+  <description>Keyboard teleop for goliath robot</description>
+
+  <license>BSD</license>
+  <author email="sa.savenko92@gmail.com">Sergey Savenko</author>
+  <maintainer email="sa.savenko92@gmail.com">Sergey Savenko</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+</package>

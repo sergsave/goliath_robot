@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>goliath_description</name>
+  <version>0.1.0</version>
+  <description>Package with goliath urdf model</description>
+
+  <license>BSD</license>
+  <author email="sa.savenko92@gmail.com">Sergey Savenko</author>
+  <maintainer email="sa.savenko92@gmail.com">Sergey Savenko</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>xacro urdf</exec_depend>
+
+</package>
