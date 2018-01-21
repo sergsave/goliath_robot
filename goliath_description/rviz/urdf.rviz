@@ -60,6 +60,11 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        body_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         lf_coxa_link:
           Alpha: 1
           Show Axes: false
@@ -76,35 +81,6 @@ Visualization Manager:
           Show Trail: false
           Value: true
         lf_tibia_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rf_coxa_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rf_femur_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rf_tarsus_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rf_tibia_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        test_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        upper_shassi_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -114,12 +90,14 @@ Visualization Manager:
       TF Prefix: ""
       Update Interval: 0
       Value: true
-      Visual Enabled: false
+      Visual Enabled: true
     - Class: rviz/TF
       Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        body_link:
+          Value: true
         lf_coxa_link:
           Value: true
         lf_femur_link:
@@ -128,37 +106,18 @@ Visualization Manager:
           Value: true
         lf_tibia_link:
           Value: true
-        rf_coxa_link:
-          Value: true
-        rf_femur_link:
-          Value: true
-        rf_tarsus_link:
-          Value: true
-        rf_tibia_link:
-          Value: true
-        test_link:
-          Value: true
-        upper_shassi_link:
-          Value: true
       Marker Scale: 0.0500000007
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        upper_shassi_link:
+        body_link:
           lf_coxa_link:
             lf_femur_link:
               lf_tibia_link:
                 lf_tarsus_link:
                   {}
-          rf_coxa_link:
-            rf_femur_link:
-              rf_tibia_link:
-                rf_tarsus_link:
-                  {}
-          test_link:
-            {}
       Update Interval: 0
       Value: true
     - Class: rviz/Marker
@@ -173,7 +132,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: upper_shassi_link
+    Fixed Frame: body_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -194,7 +153,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.446620554
+      Distance: 0.465221882
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -209,10 +168,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.545396388
+      Pitch: 0.580396354
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.1717782
+      Yaw: 5.15178537
     Saved: ~
 Window Geometry:
   Displays:
