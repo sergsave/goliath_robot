@@ -25,7 +25,7 @@
     <geometry>
     <mesh filename="package://goliath_description/meshes/coxa.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0 0.0 0.0433" rpy="0 0 0"/>
+    <origin xyz="0.0 0.0 0.0433" rpy="0 0 -3.14"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -43,7 +43,7 @@
     <geometry>
       <mesh filename="package://goliath_description/meshes/femur.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0176 0.0 0.0" rpy="0.0 0 0"/>
+    <origin xyz="0 -0.0176 0.0" rpy="0.0 -1.57 0"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -61,7 +61,7 @@
     <geometry>
        <mesh filename="package://goliath_description/meshes/tibia.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0176 0.0 0.0" rpy="0 0 0"/>
+    <origin xyz="0.0 -0.0176 0.0" rpy="3.14 -1.57 0"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -79,7 +79,7 @@
     <geometry>
        <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0 0.0 0.0" rpy="-0.25 0 0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 1.83 0"/>
     <material name="rubber"/>
   </visual>
 </link>
