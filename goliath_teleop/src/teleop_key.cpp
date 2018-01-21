@@ -4,6 +4,7 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Point32.h"
 #include <sstream>
+#include "signal.h"
 
 // disable or enable buffering input
 void switchConsoleBuffState(bool state)
@@ -20,7 +21,10 @@ void switchConsoleBuffState(bool state)
 
     /*ICANON normally takes care that one line at a time will be processed
     that means it will return if it sees a "\n" or an EOF or an EOL*/
-    newt.c_lflag &= ~(ICANON|ECHO);
+    newt.c_lflag &= ~(ICANON | ECHO);
+
+    /*For non-blocking getchar*/
+    newt.c_cc[VMIN] = newt.c_cc[VTIME] = 0;
 
     /*Those new settings will be set to STDIN
     TCSANOW tells tcsetattr to change attributes immediately. */
@@ -47,7 +51,7 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i != 3; i++)
     {
-      ss << argv[i+1];
+      ss << argv[i + 1];
       ss >> coord[i];
       ss.str("");
       ss.clear();
@@ -61,22 +65,22 @@ int main(int argc, char* argv[])
       n.advertise<geometry_msgs::Point32>("position", 100);
   ros::Rate loop_rate(10);
 
-  int c;
   geometry_msgs::Point32 pos;
   pos.x = coord[0], pos.y = coord[1], pos.z = coord[2];
-  ROS_INFO_STREAM(std::endl << pos);
+  ROS_INFO_STREAM(std::endl
+                  << pos);
+
   const float step = 0.01;
 
   switchConsoleBuffState(false);
-  while ((c = getchar()) != EOF || ros::ok())
+  while (ros::ok())
   {
     bool ready_to_pub = true;
 
-    switch (c)
+    switch (getchar())
     {
     case 'a':
       pos.x -= step;
-      ready_to_pub = true;
       break;
     case 'd':
       pos.x += step;
@@ -98,16 +102,17 @@ int main(int argc, char* argv[])
       break;
     }
 
-    if(ready_to_pub)
+    if (ready_to_pub)
     {
-      ROS_INFO_STREAM(std::endl << pos);
+
+      ROS_INFO_STREAM(std::endl
+                      << pos);
       position_pub.publish(pos);
     }
 
-    loop_rate.sleep();
     ros::spinOnce();
+    loop_rate.sleep();
   }
   switchConsoleBuffState(true);
-
   return 0;
 }
