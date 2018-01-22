@@ -11,7 +11,9 @@
 using urdf::Model;
 using urdf::JointConstSharedPtr;
 using std::string;
+using std::array;
 
+static const int NUMBER_OF_SEGMENTS = 3;
 const string HexaLeg::COXA_J_NAME = "coxa_joint";
 const string HexaLeg::FEMUR_J_NAME = "femur_joint";
 const string HexaLeg::TIBIA_J_NAME = "tibia_joint";
@@ -19,10 +21,10 @@ const string HexaLeg::TARSUS_J_NAME = "tarsus_joint";
 
 HexaLeg::HexaLeg(const string& leg_prefix, const Model& model)
 {
-  coxa_.name = leg_prefix + COXA_J_NAME;
-  JointConstSharedPtr coxa_j = model.getJoint(coxa_.name);
-  femur_.name = leg_prefix + FEMUR_J_NAME;
-  JointConstSharedPtr femur_j = model.getJoint(femur_.name);
+  segs_[Coxa].name = leg_prefix + COXA_J_NAME;
+  JointConstSharedPtr coxa_j = model.getJoint(segs_[Coxa].name);
+  segs_[Femur] = leg_prefix + FEMUR_J_NAME;
+  JointConstSharedPtr femur_j = model.getJoint(segs_[Femur].name);
   tibia_.name = leg_prefix + TIBIA_J_NAME;
   JointConstSharedPtr tibia_j = model.getJoint(tibia_.name);
   string j_name = leg_prefix + TARSUS_J_NAME;

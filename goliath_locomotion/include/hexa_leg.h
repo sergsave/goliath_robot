@@ -10,19 +10,13 @@
 
 #include "urdf/model.h"
 #include <string>
+#include <array>
 
 class HexaLeg
 {
 public:
   HexaLeg(const std::string& leg_prefix, const urdf::Model&);
 
-  struct Angles
-  {
-    Angles() : coxa_(0), femur_(0), tibia_(0) {}
-    double coxa_;
-    double femur_;
-    double tibia_;
-  };
   struct Position
   {
     Position(float x, float y, float z) : x_(x), y_(y), z_(z) {}
@@ -36,21 +30,21 @@ public:
     Warning,
     Error
   };
-
-  IKResult getAnglesIK(const Position&, Angles&); // calculate inverse
-                                                  // kinematics
-  struct JntNames
+  enum SegmentType
   {
-    std::string coxa_;
-    std::string femur_;
-    std::string tibia_;
+    Coxa = 0,
+    Femur,
+    Tibia
   };
-  JntNames getJntNames();
 
-  private :
-  static const std::string COXA_J_NAME;
-  static const std::string FEMUR_J_NAME;
-  static const std::string TIBIA_J_NAME;
+  getAnglesIK(const Position&,
+              std::array<int, NUMBER_OF_SEGMENTS>& Angles); // calculate inverse
+
+  std::array<std::string, NUMBER_OF_SEGMENTS> getJntNames();
+
+private:
+  static const int NUMBER_OF_SEGMENTS;
+  static const std::array<std::string, NUMBER_OF_SEGMENTS> J_NAMES;
   static const std::string TARSUS_J_NAME;
 
   struct Segment
@@ -66,8 +60,8 @@ public:
       return angle <= max_angle_ && angle >= min_angle_;
     };
   };
-  Segment coxa_, femur_, tibia_;
-  bool checkAngles(Angles& angs);
+  std::array<Segment, NUMBER_OF_SEGMENTS> segs_;
+  bool checkAngles(std::array<int, NUMBER_OF_SEGMENTS>& Angles);
 };
 
 #endif /* HEXA_LEG_H_ */
