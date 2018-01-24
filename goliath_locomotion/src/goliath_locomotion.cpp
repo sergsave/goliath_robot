@@ -20,6 +20,14 @@ using std::endl;
 HexaLeg* p_leg;
 ros::Publisher jnt_pub;
 
+class GoliathLocomotion
+{
+public:
+  GoliathLocomotion() {}
+ private:
+
+};
+
 void positionCallback(const geometry_msgs::Point32& pos)
 {
   HexaLeg::Position hex_pos(pos.x, pos.y, pos.z);
@@ -29,20 +37,20 @@ void positionCallback(const geometry_msgs::Point32& pos)
 
   if (p_leg->getAnglesIK(hex_pos, hex_angs) == HexaLeg::OK)
   {
-    ROS_INFO_STREAM("Calc IK: cft - [" << hex_angs.coxa_ << ", "
-                                       << hex_angs.femur_ << ", "
-                                       << hex_angs.tibia_ << "]");
+    ROS_INFO_STREAM("Calc IK: cft - [" << hex_angs[HexaLeg::Coxa] << ", "
+                                       << hex_angs[HexaLeg::Femur] << ", "
+                                       << hex_angs[HexaLeg::Tibia] << "]");
     names = p_leg->getJntNames();
     jnt.header.stamp = ros::Time::now();
-    jnt.name.resize(3); //why 3???
-    jnt.position.resize(3); //why 3??
-    jnt.name[0] = names.coxa_;
-    jnt.position[0] = hex_angs.coxa_;
-    jnt.name[1] = names.femur_;
-    jnt.position[1] = hex_angs.femur_;
-    jnt.name[2] = names.tibia_;
-    jnt.position[2] = hex_angs.tibia_;
-    jnt_pub.publish(jnt);
+    jnt.name.resize(HexaLeg::NUMBER_OF_SEGMENTS);
+    jnt.position.resize(HexaLeg::NUMBER_OF_SEGMENTS);
+
+    for (std::size_t i = 0; i != jnt.name.size(); ++i)
+    {
+      jnt.name[i] = names[i];
+      jnt.position[i] = hex_angs[i];
+      jnt_pub.publish(jnt);
+    }
   }
   else
     ROS_ERROR_STREAM("Calc IK failed!");
@@ -50,11 +58,11 @@ void positionCallback(const geometry_msgs::Point32& pos)
 
 int main(int argc, char** argv)
 {
-  // sleep(3); // for debug purpose
+  sleep(2); // for debug purpose
   urdf::Model my_model;
 
   ros::init(argc, argv, "goliath_kinematics");
-  ros::NodeHandle n;
+
 
   if (argc != 3)
   {

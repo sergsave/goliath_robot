@@ -34,18 +34,19 @@ public:
   {
     Coxa = 0,
     Femur,
-    Tibia
+    Tibia,
+    LegEnd
   };
 
-  getAnglesIK(const Position&,
-              std::array<int, NUMBER_OF_SEGMENTS>& Angles); // calculate inverse
+  static const int NUMBER_OF_SEGMENTS = LegEnd;
+  typedef std::array<double, NUMBER_OF_SEGMENTS> Angles;
+  typedef std::array<std::string, NUMBER_OF_SEGMENTS> JntNames;
 
-  std::array<std::string, NUMBER_OF_SEGMENTS> getJntNames();
-
+  IKResult getAnglesIK(const Position&, Angles&);
+  JntNames getJntNames();
 private:
-  static const int NUMBER_OF_SEGMENTS;
-  static const std::array<std::string, NUMBER_OF_SEGMENTS> J_NAMES;
-  static const std::string TARSUS_J_NAME;
+
+  static const std::array<std::string, NUMBER_OF_SEGMENTS + 1> JNT_BASE_NAMES;
 
   struct Segment
   {
@@ -61,7 +62,7 @@ private:
     };
   };
   std::array<Segment, NUMBER_OF_SEGMENTS> segs_;
-  bool checkAngles(std::array<int, NUMBER_OF_SEGMENTS>& Angles);
+  bool checkAngles(Angles&);
 };
 
 #endif /* HEXA_LEG_H_ */
