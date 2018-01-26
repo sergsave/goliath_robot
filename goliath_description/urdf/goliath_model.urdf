@@ -19,7 +19,6 @@
     </visual>
   </link>
 
-
 <link name="lf_coxa_link">
   <visual>
     <geometry>
@@ -90,72 +89,76 @@
   <origin xyz="-0.115 0.0 0"/>
 </joint>
 
-<!-- Right front leg
+<!-- Right front leg -->
 
-  <link name="rf_coxa_link">
-    <visual>
-      <geometry>
-      <mesh filename="package://urdf_test/meshes/coxa_link_l.stl" scale= "0.001 0.001 0.001" />
-      </geometry>
-      <origin xyz="0.0 0.0 0.0433" rpy="0 0 -1.57"/>
-    </visual>
-  </link>
+<link name="rf_coxa_link">
+  <visual>
+    <geometry>
+    <mesh filename="package://goliath_description/meshes/coxa.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0433" rpy="0 0 -3.14"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
 
-  <joint name="rf_coxa_joint" type="revolute">
-    <parent link="upper_shassi_link"/>
-    <child link="rf_coxa_link"/>
-    <origin xyz="0.063 0.092 0.00" rpy="0 0 0.61"/>
-    <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
-    <axis xyz="0 0 1"/>
-  </joint>
+<joint name="rf_coxa_joint" type="revolute">
+  <parent link="body_link"/>
+  <child link="rf_coxa_link"/>
+  <origin xyz="0.063 0.092 0.00" rpy="0 0 0.6"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 0 1"/>
+</joint>
 
-  <link name="rf_femur_link">
-    <visual>
-      <geometry>
-        <mesh filename="package://urdf_test/meshes/femur_link_l.stl" scale= "0.001 0.001 0.001" />
-      </geometry>
-      <origin xyz="0.0176 0.0 0.0" rpy="0.0 -1.57 1.57"/>
-    </visual>
-  </link>
+<link name="rf_femur_link">
+  <visual>
+    <geometry>
+      <mesh filename="package://goliath_description/meshes/femur.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0 -0.0176 0.0" rpy="0.0 -1.57 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
 
-  <joint name="rf_femur_joint" type="revolute">
-    <parent link="rf_coxa_link"/>
-    <child link="rf_femur_link"/>
-    <origin xyz="0.022 0.00 0.00" rpy="0 -0.785 0"/>
-    <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
-    <axis xyz="0 1 0"/>
-  </joint>
+<joint name="rf_femur_joint" type="revolute">
+  <parent link="rf_coxa_link"/>
+  <child link="rf_femur_link"/>
+  <origin xyz="0.022 0.00 0.00" rpy="0 -0.785 0.0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
 
-  <link name="rf_tibia_link">
-    <visual>
-      <geometry>
-         <mesh filename="package://urdf_test/meshes/tibia_link_l.stl" scale= "0.001 0.001 0.001" />
-      </geometry>
-      <origin xyz="0.0176 0.0 0.0" rpy="0 0 -1.57"/>
-    </visual>
-  </link>
+<link name="rf_tibia_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/tibia.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 -0.0176 0.0" rpy="3.14 -1.57 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
 
-  <joint name="rf_tibia_joint" type="revolute">
-    <parent link="rf_femur_link"/>
-    <child link="rf_tibia_link"/>
-    <origin xyz="0.08 0.0 0.0" rpy="0 -0.785 0"/>
-    <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
-    <axis xyz="0 1 0"/>
-  </joint>
+<joint name="rf_tibia_joint" type="revolute">
+  <parent link="rf_femur_link"/>
+  <child link="rf_tibia_link"/>
+  <origin xyz="0.08 0.0 0.0" rpy="0 -0.785 0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
 
 <link name="rf_tarsus_link">
-    <visual>
-      <geometry>
-         <mesh filename="package://urdf_test/meshes/leg_end_link.stl" scale= "0.001 0.001 0.001" />
-      </geometry>
-      <origin xyz="0.0 0.0 0.0" rpy="-0.25 0 0"/>
-    </visual>
-  </link>
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0" rpy="0 1.83 0"/>
+    <material name="rubber"/>
+  </visual>
+</link>
 
-  <joint name="rf_tarsus_joint" type="fixed">
-    <parent link="rf_tibia_link"/>
-    <child link="rf_tarsus_link"/>
-    <origin xyz="-0.115 0.0 0.0 "/>
-  </joint>
+<joint name="rf_tarsus_joint" type="fixed">
+  <parent link="rf_tibia_link"/>
+  <child link="rf_tarsus_link"/>
+  <origin xyz="-0.115 0.0 0"/>
+</joint>
 -->
 </robot>

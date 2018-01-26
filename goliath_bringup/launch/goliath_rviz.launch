@@ -5,7 +5,8 @@
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find goliath_description)/urdf/goliath_model.urdf'" />
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
-  <node name="goliath_locomotion" pkg="goliath_locomotion" type="goliath_locomotion" args="$(find goliath_description)/urdf/goliath_model.urdf lf_"/>
+  <node name="goliath_locomotion" pkg="goliath_locomotion" type="goliath_locomotion"
+    args="$(find goliath_description)/urdf/goliath_model.urdf"/>
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" />
   <node name="teleop" pkg="goliath_teleop" type="teleop_key" args="0.05 0.05 0.05" output="screen" />
 

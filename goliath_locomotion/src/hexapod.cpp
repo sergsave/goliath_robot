@@ -36,6 +36,14 @@ Hexapod::Hexapod(const Model& model)
   }
 }
 
+Hexapod::JntNames Hexapod::getJntNames()
+{
+  JntNames ret;
+  for (auto& elem : ret)
+    elem = legs_[&elem - ret.begin()].getJntNames();
+  return ret;
+}
+
 Hexapod::Angles Hexapod::getAnglesForSingleLeg(Hexapod::LegType type,
                                                const RoboLeg::Position& pos)
 {
@@ -47,14 +55,6 @@ Hexapod::Angles Hexapod::getAnglesForSingleLeg(Hexapod::LegType type,
   else
     throw logic_error("Inverse kinematics error!");
 
-  return ret;
-}
-
-Hexapod::JntNames Hexapod::getJntNames()
-{
-  JntNames ret;
-  for (auto& elem : ret)
-    elem = legs_[&elem - ret.begin()].getJntNames();
   return ret;
 }
 
@@ -107,7 +107,7 @@ RoboLeg::RoboLeg(const string& leg_prefix, const Model& model)
 RoboLeg::IKResult RoboLeg::getAnglesIK(const Position& pos, Angles& angs)
 {
   Angles temp;
-  temp[COXA] = atan2(pos.x, pos.x) - segs_[COXA].init_angle;
+  temp[COXA] = atan2(pos.y, pos.x) - segs_[COXA].init_angle;
   // round up the angle
   temp[COXA] +=
       temp[COXA] > M_PI ? -2 * M_PI : (temp[COXA] < -M_PI ? 2 * M_PI : 0);
@@ -118,7 +118,7 @@ RoboLeg::IKResult RoboLeg::getAnglesIK(const Position& pos, Angles& angs)
   double xy, s;
   double alpha, beta;
 
-  xy = hypot(pos.x, pos.x) - segs_[COXA].length;
+  xy = hypot(pos.x, pos.y) - segs_[COXA].length;
   alpha = atan2(xy, pos.z);
   s = hypot(xy, pos.z);
   beta = acos(

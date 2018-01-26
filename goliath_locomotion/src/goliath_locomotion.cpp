@@ -10,8 +10,8 @@
 #include <string>
 #include <iostream>
 #include "hexapod.h"
-#include "geometry_msgs/Point32.h"
 #include "sensor_msgs/JointState.h"
+#include "goliath_msgs/Pose.h"
 
 using std::string;
 using std::cout;
@@ -20,29 +20,32 @@ using std::endl;
 class GoliathLocomotion
 {
 public:
-  GoliathLocomotion(string robot_urdf, ros::NodeHandle node):
-    n_(node)
+  GoliathLocomotion(string robot_urdf, ros::NodeHandle node) : n_(node)
   {
     urdf::Model model;
     if (!model.initFile(robot_urdf))
     {
-      ROS_ERROR_STREAM("Failed, \"" << robot_urdf <<
-                "\" is not a URDF file." << endl);
+      ROS_ERROR_STREAM("Failed, \"" << robot_urdf << "\" is not a URDF file."
+                                    << endl);
       exit(-1);
     }
     hexapod_ = Hexapod(model);
 
-    pos_sub_ = n_.subscribe("position", POS_QUEUE_SZ,
-                            &GoliathLocomotion::positionCallback, this);
+    pos_sub_ = n_.subscribe("leg_position", POS_QUEUE_SZ,
+                            &GoliathLocomotion::legPositionCallback, this);
     jnt_pub_ =
         n_.advertise<sensor_msgs::JointState>("joint_states", JNT_QUEUE_SZ);
   }
 
   void test()
   {
-    geometry_msgs::Point32 p;
-    p.x = p.y = p.z = 0.05;
-    positionCallback(p);
+    goliath_msgs::Pose p;
+    p.number_of_leg = 1;
+    p.position_of_leg.x = 0.05;
+    p.position_of_leg.y = 0.05;
+    p.position_of_leg.z = 0.05;
+
+    legPositionCallback(p);
   }
 
 private:
@@ -52,9 +55,10 @@ private:
     JNT_QUEUE_SZ = 5
   };
 
-  void positionCallback(const geometry_msgs::Point32& pos)
+  void legPositionCallback(const goliath_msgs::Pose& pos)
   {
-    RoboLeg::Position leg_pos(pos.x, pos.y, pos.z);
+    RoboLeg::Position leg_pos(pos.position_of_leg.x, pos.position_of_leg.y,
+                              pos.position_of_leg.z);
     Hexapod::JntNames jnt_names = hexapod_.getJntNames();
     Hexapod::Angles angs;
 
@@ -63,11 +67,13 @@ private:
 
     try
     {
-      angs = hexapod_.getAnglesForSingleLeg(Hexapod::LF, leg_pos);
+      angs = hexapod_.getAnglesForSingleLeg(
+          Hexapod::LegType(pos.number_of_leg - 1), leg_pos);
     }
     catch (std::logic_error e)
     {
-      ROS_INFO_STREAM(e.what());
+      ROS_ERROR_STREAM(e.what());
+      return;
     }
 
     for (std::size_t i = 0; i != angs.size(); ++i)
@@ -76,11 +82,12 @@ private:
         jnt.name.push_back(jnt_names[i][j]);
         jnt.position.push_back(angs[i][j]);
       }
+    jnt_pub_.publish(jnt);
 
-    for (auto i : jnt.name)
-      ROS_INFO_STREAM(" " << i << " ");
-    for (auto i : jnt.position)
-      ROS_INFO_STREAM(" " << i << " ");
+    for (auto n : jnt.name)
+      ROS_INFO_STREAM(" " << n << " ");
+    for (auto p : jnt.position)
+      ROS_INFO_STREAM(" " << p << " ");
   }
 
   ros::NodeHandle n_;
@@ -102,7 +109,7 @@ int main(int argc, char** argv)
 
   ros::NodeHandle node;
   GoliathLocomotion goliath_locomotion(argv[1], node);
-  goliath_locomotion.test();
+  //goliath_locomotion.test();
 
   ros::spin();
   return 0;
