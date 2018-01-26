@@ -9,7 +9,7 @@
 #include "ros/ros.h"
 #include <string>
 #include <iostream>
-#include "hexa_leg.h"
+#include "hexapod.h"
 #include "geometry_msgs/Point32.h"
 #include "sensor_msgs/JointState.h"
 
@@ -17,71 +17,89 @@ using std::string;
 using std::cout;
 using std::endl;
 
-HexaLeg* p_leg;
-ros::Publisher jnt_pub;
-
 class GoliathLocomotion
 {
 public:
-  GoliathLocomotion() {}
- private:
-
-};
-
-void positionCallback(const geometry_msgs::Point32& pos)
-{
-  HexaLeg::Position hex_pos(pos.x, pos.y, pos.z);
-  HexaLeg::Angles hex_angs;
-  sensor_msgs::JointState jnt;
-  HexaLeg::JntNames names;
-
-  if (p_leg->getAnglesIK(hex_pos, hex_angs) == HexaLeg::OK)
+  GoliathLocomotion(string robot_urdf)
   {
-    ROS_INFO_STREAM("Calc IK: cft - [" << hex_angs[HexaLeg::Coxa] << ", "
-                                       << hex_angs[HexaLeg::Femur] << ", "
-                                       << hex_angs[HexaLeg::Tibia] << "]");
-    names = p_leg->getJntNames();
-    jnt.header.stamp = ros::Time::now();
-    jnt.name.resize(HexaLeg::NUMBER_OF_SEGMENTS);
-    jnt.position.resize(HexaLeg::NUMBER_OF_SEGMENTS);
-
-    for (std::size_t i = 0; i != jnt.name.size(); ++i)
+    urdf::Model model;
+    if (!model.initFile(robot_urdf))
     {
-      jnt.name[i] = names[i];
-      jnt.position[i] = hex_angs[i];
-      jnt_pub.publish(jnt);
+      ROS_ERROR("Failed to parse urdf file");
     }
+    hexapod_ = Hexapod(model);
+
+    pos_sub_ = n_.subscribe("position", POS_QUEUE_SZ,
+                            &GoliathLocomotion::positionCallback, this);
+    jnt_pub_ =
+        n_.advertise<sensor_msgs::JointState>("joint_states", JNT_QUEUE_SZ);
   }
-  else
-    ROS_ERROR_STREAM("Calc IK failed!");
-}
+
+  void test()
+  {
+    geometry_msgs::Point32 p;
+    p.x = p.y = p.z = 0.05;
+    positionCallback(p);
+  }
+
+private:
+  enum QueueSize
+  {
+    POS_QUEUE_SZ = 5,
+    JNT_QUEUE_SZ = 5
+  };
+
+  void positionCallback(const geometry_msgs::Point32& pos)
+  {
+    RoboLeg::Position leg_pos(pos.x, pos.y, pos.z);
+    Hexapod::JntNames jnt_names = hexapod_.getJntNames();
+    Hexapod::Angles angs;
+
+    sensor_msgs::JointState jnt;
+    jnt.header.stamp = ros::Time::now();
+
+    try
+    {
+      angs = hexapod_.getAnglesForSingleLeg(Hexapod::LF, leg_pos);
+    }
+    catch (std::logic_error e)
+    {
+      ROS_INFO_STREAM(e.what());
+    }
+
+    for (std::size_t i = 0; i != angs.size(); ++i)
+      for (std::size_t j = 0; j != angs[i].size(); ++j)
+      {
+        jnt.name.push_back(jnt_names[i][j]);
+        jnt.position.push_back(angs[i][j]);
+      }
+
+    for (auto i : jnt.name)
+      ROS_INFO_STREAM(" " << i << " ");
+    for (auto i : jnt.position)
+      ROS_INFO_STREAM(" " << i << " ");
+  }
+
+  ros::NodeHandle n_;
+  ros::Publisher jnt_pub_;
+  ros::Subscriber pos_sub_;
+  Hexapod hexapod_;
+};
 
 int main(int argc, char** argv)
 {
   sleep(2); // for debug purpose
-  urdf::Model my_model;
 
   ros::init(argc, argv, "goliath_kinematics");
 
-
-  if (argc != 3)
+  if (argc != 2)
   {
     ROS_ERROR("Need a urdf file as argument");
-    ROS_ERROR("Need a leg prefix as argument");
     return -1;
   }
-  std::string urdf_file = argv[1];
 
-  if (!my_model.initFile(urdf_file))
-  {
-    ROS_ERROR("Failed to parse urdf file");
-    return -1;
-  }
-  static HexaLeg leg(argv[2], my_model);
-  p_leg = &leg;
-
-  ros::Subscriber position_sub = n.subscribe("position", 100, positionCallback);
-  jnt_pub = n.advertise<sensor_msgs::JointState>("joint_states", 5);
+  GoliathLocomotion goliath_locomotion(argv[1]);
+  goliath_locomotion.test();
 
   ros::spin();
   return 0;
