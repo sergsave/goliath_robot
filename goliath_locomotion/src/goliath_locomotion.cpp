@@ -20,12 +20,15 @@ using std::endl;
 class GoliathLocomotion
 {
 public:
-  GoliathLocomotion(string robot_urdf)
+  GoliathLocomotion(string robot_urdf, ros::NodeHandle node):
+    n_(node)
   {
     urdf::Model model;
     if (!model.initFile(robot_urdf))
     {
-      ROS_ERROR("Failed to parse urdf file");
+      ROS_ERROR_STREAM("Failed, \"" << robot_urdf <<
+                "\" is not a URDF file." << endl);
+      exit(-1);
     }
     hexapod_ = Hexapod(model);
 
@@ -89,16 +92,16 @@ private:
 int main(int argc, char** argv)
 {
   sleep(2); // for debug purpose
-
   ros::init(argc, argv, "goliath_kinematics");
 
   if (argc != 2)
   {
-    ROS_ERROR("Need a urdf file as argument");
+    ROS_ERROR_STREAM("Need a URDF file as argument.");
     return -1;
   }
 
-  GoliathLocomotion goliath_locomotion(argv[1]);
+  ros::NodeHandle node;
+  GoliathLocomotion goliath_locomotion(argv[1], node);
   goliath_locomotion.test();
 
   ros::spin();
