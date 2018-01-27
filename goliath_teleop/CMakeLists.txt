@@ -8,9 +8,8 @@ project(goliath_teleop)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  std_msgs
-  goliath_msgs
-  roscpp
+    roscpp
+    goliath_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -105,11 +104,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES goliath_teleop
-   CATKIN_DEPENDS
-   message_runtime
-   std_msgs
-   goliath_msgs
-   roscpp
+   CATKIN_DEPENDS roscpp goliath_msgs
 #  DEPENDS system_lib
 )
 

@@ -8,7 +8,10 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp urdf std_msgs goliath_msgs
+    roscpp
+    urdf
+    std_msgs
+    goliath_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -103,12 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES goliath_locomotion
-   CATKIN_DEPENDS
-   message_runtime
-   roscpp
-   urdf
-   std_msgs
-   goliath_msgs
+   CATKIN_DEPENDS roscpp urdf std_msgs goliath_msgs
 #  DEPENDS system_lib
 )
 
@@ -202,5 +200,6 @@ include_directories(
 # catkin_add_nosetests(test)
 
 add_executable(goliath_locomotion src/goliath_locomotion.cpp
-                                  src/hexapod.cpp)
+                                  src/hexapod.cpp
+                                  src/robo_leg.cpp)
 target_link_libraries(goliath_locomotion ${catkin_LIBRARIES})

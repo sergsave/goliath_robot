@@ -5,10 +5,8 @@
 // License as published by the Free Software Foundation; either
 // version 2.1 of the License, or (at your option) any later version.
 
-#include "urdf/model.h"
 #include "ros/ros.h"
 #include <string>
-#include <iostream>
 #include "hexapod.h"
 #include "sensor_msgs/JointState.h"
 #include "goliath_msgs/Pose.h"

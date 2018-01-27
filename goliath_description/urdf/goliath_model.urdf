@@ -14,7 +14,7 @@
       <geometry>
       <mesh filename="package://goliath_description/meshes/body.stl" scale= "0.001 0.001 0.001" />
       </geometry>
-      <origin xyz="0.0 0.0 0.0448" rpy="1.57 0 -3.14"/>
+      <origin xyz="0.0 0.0 0.0448" rpy="0 0 0"/>
       <material name="alumunium"/>
     </visual>
   </link>
@@ -22,9 +22,9 @@
 <link name="lf_coxa_link">
   <visual>
     <geometry>
-    <mesh filename="package://goliath_description/meshes/coxa.stl" scale= "0.001 0.001 0.001" />
+    <mesh filename="package://goliath_description/meshes/l_coxa.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0 0.0 0.0433" rpy="0 0 -3.14"/>
+    <origin xyz="0.0 0.0 0.0433" rpy="0 0 0"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -40,9 +40,9 @@
 <link name="lf_femur_link">
   <visual>
     <geometry>
-      <mesh filename="package://goliath_description/meshes/femur.stl" scale= "0.001 0.001 0.001" />
+      <mesh filename="package://goliath_description/meshes/l_femur.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0 -0.0176 0.0" rpy="0.0 -1.57 0"/>
+    <origin xyz="0 0 0.0" rpy="0.0 0 0"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -58,9 +58,9 @@
 <link name="lf_tibia_link">
   <visual>
     <geometry>
-       <mesh filename="package://goliath_description/meshes/tibia.stl" scale= "0.001 0.001 0.001" />
+       <mesh filename="package://goliath_description/meshes/l_tibia.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0 -0.0176 0.0" rpy="3.14 -1.57 0"/>
+    <origin xyz="0.0 0 0.0" rpy="0 0 0"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -78,7 +78,7 @@
     <geometry>
        <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0 0.0 0.0" rpy="0 1.83 0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0.25 0"/>
     <material name="rubber"/>
   </visual>
 </link>
@@ -89,14 +89,158 @@
   <origin xyz="-0.115 0.0 0"/>
 </joint>
 
+<!-- Left medium leg -->
+
+<link name="lm_coxa_link">
+  <visual>
+    <geometry>
+    <mesh filename="package://goliath_description/meshes/l_coxa.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0433" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="lm_coxa_joint" type="revolute">
+  <parent link="body_link"/>
+  <child link="lm_coxa_link"/>
+  <origin xyz="-0.072 0.0 0.0" rpy="0 0 3.14"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 0 1"/>
+</joint>
+
+<link name="lm_femur_link">
+  <visual>
+    <geometry>
+      <mesh filename="package://goliath_description/meshes/l_femur.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0 0 0.0" rpy="0.0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="lm_femur_joint" type="revolute">
+  <parent link="lm_coxa_link"/>
+  <child link="lm_femur_link"/>
+  <origin xyz="0.022 0.00 0.00" rpy="0 -0.785 0.0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
+
+<link name="lm_tibia_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/l_tibia.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0 0.0" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="lm_tibia_joint" type="revolute">
+  <parent link="lm_femur_link"/>
+  <child link="lm_tibia_link"/>
+  <origin xyz="0.08 0.0 0.0" rpy="0 -0.785 0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
+
+<link name="lm_tarsus_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0.25 0"/>
+    <material name="rubber"/>
+  </visual>
+</link>
+
+<joint name="lm_tarsus_joint" type="fixed">
+  <parent link="lm_tibia_link"/>
+  <child link="lm_tarsus_link"/>
+  <origin xyz="-0.115 0.0 0"/>
+</joint>
+
+<!-- Left rear leg -->
+
+<link name="lr_coxa_link">
+  <visual>
+    <geometry>
+    <mesh filename="package://goliath_description/meshes/l_coxa.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0433" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="lr_coxa_joint" type="revolute">
+  <parent link="body_link"/>
+  <child link="lr_coxa_link"/>
+  <origin xyz="-0.063 -0.092 0.00" rpy="0 0 -2.17"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 0 1"/>
+</joint>
+
+<link name="lr_femur_link">
+  <visual>
+    <geometry>
+      <mesh filename="package://goliath_description/meshes/l_femur.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="lr_femur_joint" type="revolute">
+  <parent link="lr_coxa_link"/>
+  <child link="lr_femur_link"/>
+  <origin xyz="0.022 0.00 0.00" rpy="0 -0.785 0.0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
+
+<link name="lr_tibia_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/l_tibia.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0 0.0" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="lr_tibia_joint" type="revolute">
+  <parent link="lr_femur_link"/>
+  <child link="lr_tibia_link"/>
+  <origin xyz="0.08 0.0 0.0" rpy="0 -0.785 0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
+
+<link name="lr_tarsus_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0.25 0"/>
+    <material name="rubber"/>
+  </visual>
+</link>
+
+<joint name="lr_tarsus_joint" type="fixed">
+  <parent link="lr_tibia_link"/>
+  <child link="lr_tarsus_link"/>
+  <origin xyz="-0.115 0.0 0"/>
+</joint>
+
 <!-- Right front leg -->
 
 <link name="rf_coxa_link">
   <visual>
     <geometry>
-    <mesh filename="package://goliath_description/meshes/coxa.stl" scale= "0.001 0.001 0.001" />
+    <mesh filename="package://goliath_description/meshes/r_coxa.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0 0.0 0.0433" rpy="0 0 -3.14"/>
+    <origin xyz="0.0 0.0 0.0433" rpy="0 0 0"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -112,9 +256,9 @@
 <link name="rf_femur_link">
   <visual>
     <geometry>
-      <mesh filename="package://goliath_description/meshes/femur.stl" scale= "0.001 0.001 0.001" />
+      <mesh filename="package://goliath_description/meshes/r_femur.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0 -0.0176 0.0" rpy="0.0 -1.57 0"/>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -130,9 +274,9 @@
 <link name="rf_tibia_link">
   <visual>
     <geometry>
-       <mesh filename="package://goliath_description/meshes/tibia.stl" scale= "0.001 0.001 0.001" />
+       <mesh filename="package://goliath_description/meshes/r_tibia.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0 -0.0176 0.0" rpy="3.14 -1.57 0"/>
+    <origin xyz="0.0 0 0.0" rpy="0 0 0"/>
     <material name="alumunium"/>
   </visual>
 </link>
@@ -150,7 +294,7 @@
     <geometry>
        <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
     </geometry>
-    <origin xyz="0.0 0.0 0.0" rpy="0 1.83 0"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0.25 0"/>
     <material name="rubber"/>
   </visual>
 </link>
@@ -160,5 +304,148 @@
   <child link="rf_tarsus_link"/>
   <origin xyz="-0.115 0.0 0"/>
 </joint>
--->
+<!-- Right medium leg -->
+
+<link name="rm_coxa_link">
+  <visual>
+    <geometry>
+    <mesh filename="package://goliath_description/meshes/r_coxa.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0433" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="rm_coxa_joint" type="revolute">
+  <parent link="body_link"/>
+  <child link="rm_coxa_link"/>
+  <origin xyz="0.072 0 0.00" rpy="0 0 0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 0 1"/>
+</joint>
+
+<link name="rm_femur_link">
+  <visual>
+    <geometry>
+      <mesh filename="package://goliath_description/meshes/r_femur.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="rm_femur_joint" type="revolute">
+  <parent link="rm_coxa_link"/>
+  <child link="rm_femur_link"/>
+  <origin xyz="0.022 0.00 0.00" rpy="0 -0.785 0.0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
+
+<link name="rm_tibia_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/r_tibia.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0 0.0" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="rm_tibia_joint" type="revolute">
+  <parent link="rm_femur_link"/>
+  <child link="rm_tibia_link"/>
+  <origin xyz="0.08 0.0 0.0" rpy="0 -0.785 0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
+
+<link name="rm_tarsus_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0.25 0"/>
+    <material name="rubber"/>
+  </visual>
+</link>
+
+<joint name="rm_tarsus_joint" type="fixed">
+  <parent link="rm_tibia_link"/>
+  <child link="rm_tarsus_link"/>
+  <origin xyz="-0.115 0.0 0"/>
+</joint>
+
+<!-- Right rear leg -->
+
+<link name="rr_coxa_link">
+  <visual>
+    <geometry>
+    <mesh filename="package://goliath_description/meshes/r_coxa.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0433" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="rr_coxa_joint" type="revolute">
+  <parent link="body_link"/>
+  <child link="rr_coxa_link"/>
+  <origin xyz="0.063 -0.092 0.00" rpy="0 0 -0.6"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 0 1"/>
+</joint>
+
+<link name="rr_femur_link">
+  <visual>
+    <geometry>
+      <mesh filename="package://goliath_description/meshes/r_femur.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="rr_femur_joint" type="revolute">
+  <parent link="rr_coxa_link"/>
+  <child link="rr_femur_link"/>
+  <origin xyz="0.022 0.00 0.00" rpy="0 -0.785 0.0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
+
+<link name="rr_tibia_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/r_tibia.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0 0.0" rpy="0 0 0"/>
+    <material name="alumunium"/>
+  </visual>
+</link>
+
+<joint name="rr_tibia_joint" type="revolute">
+  <parent link="rr_femur_link"/>
+  <child link="rr_tibia_link"/>
+  <origin xyz="0.08 0.0 0.0" rpy="0 -0.785 0"/>
+  <limit effort="1.0" velocity="1.0" lower="-3.14" upper="3.14"/>
+  <axis xyz="0 1 0"/>
+</joint>
+
+<link name="rr_tarsus_link">
+  <visual>
+    <geometry>
+       <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
+    </geometry>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0.25 0"/>
+    <material name="rubber"/>
+  </visual>
+</link>
+
+<joint name="rr_tarsus_joint" type="fixed">
+  <parent link="rr_tibia_link"/>
+  <child link="rr_tarsus_link"/>
+  <origin xyz="-0.115 0.0 0"/>
+</joint>
+
 </robot>
