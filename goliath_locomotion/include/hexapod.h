@@ -31,7 +31,7 @@ public:
   typedef std::array<RoboLeg::Angles, NUMBER_OF_LEGS> Angles;
   typedef std::array<RoboLeg::JntNames, NUMBER_OF_LEGS> JntNames;
 
-  Angles getAnglesForSingleLeg(LegType, const RoboLeg::Position&);
+  void getAnglesForSingleLeg(LegType, const RoboLeg::Position&, Angles &angs);
   JntNames getJntNames();
 
 private:

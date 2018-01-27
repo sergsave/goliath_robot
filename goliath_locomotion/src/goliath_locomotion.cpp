@@ -7,6 +7,7 @@
 
 #include "ros/ros.h"
 #include <string>
+#include <array>
 #include "hexapod.h"
 #include "sensor_msgs/JointState.h"
 #include "goliath_msgs/Pose.h"
@@ -29,7 +30,7 @@ public:
     }
     hexapod_ = Hexapod(model);
 
-    pos_sub_ = n_.subscribe("leg_position", POS_QUEUE_SZ,
+    pos_sub_ = n_.subscribe("leg_positions", POS_QUEUE_SZ,
                             &GoliathLocomotion::legPositionCallback, this);
     jnt_pub_ =
         n_.advertise<sensor_msgs::JointState>("joint_states", JNT_QUEUE_SZ);
@@ -38,10 +39,6 @@ public:
   void test()
   {
     goliath_msgs::Pose p;
-    p.number_of_leg = 1;
-    p.position_of_leg.x = 0.05;
-    p.position_of_leg.y = 0.05;
-    p.position_of_leg.z = 0.05;
 
     legPositionCallback(p);
   }
@@ -55,23 +52,29 @@ private:
 
   void legPositionCallback(const goliath_msgs::Pose& pos)
   {
-    RoboLeg::Position leg_pos(pos.position_of_leg.x, pos.position_of_leg.y,
-                              pos.position_of_leg.z);
+    std::vector<RoboLeg::Position> legs_pos;
+
+    for (auto& it : pos.position_of_legs)
+      legs_pos.push_back(RoboLeg::Position(it.x, it.y, it.z));
+
     Hexapod::JntNames jnt_names = hexapod_.getJntNames();
     Hexapod::Angles angs;
 
     sensor_msgs::JointState jnt;
     jnt.header.stamp = ros::Time::now();
 
-    try
+    for (std::size_t n = 0; n != legs_pos.size(); ++n)
     {
-      angs = hexapod_.getAnglesForSingleLeg(
-          Hexapod::LegType(pos.number_of_leg - 1), leg_pos);
-    }
-    catch (std::logic_error e)
-    {
-      ROS_ERROR_STREAM(e.what());
-      return;
+      try
+      {
+        hexapod_.getAnglesForSingleLeg(Hexapod::LegType(n),
+                                       legs_pos[n], angs);
+      }
+      catch (std::logic_error e)
+      {
+        ROS_ERROR_STREAM(e.what());
+        return;
+      }
     }
 
     for (std::size_t i = 0; i != angs.size(); ++i)
@@ -107,7 +110,6 @@ int main(int argc, char** argv)
 
   ros::NodeHandle node;
   GoliathLocomotion goliath_locomotion(argv[1], node);
-  //goliath_locomotion.test();
 
   ros::spin();
   return 0;

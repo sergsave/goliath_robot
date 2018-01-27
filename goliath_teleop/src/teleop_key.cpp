@@ -9,14 +9,18 @@
 class GoliathTeleop
 {
 public:
-  GoliathTeleop(ros::NodeHandle node) : n_(node)
+  GoliathTeleop(ros::NodeHandle node) : n_(node), leg_numb_(DEFAULT_LEG_NUMB)
   {
-    pose_pub_ = n_.advertise<goliath_msgs::Pose>("leg_position", 10);
-    pos_.number_of_leg = DEFAULT_LEG_NUMB;
-    pos_.position_of_leg.x = pos_.position_of_leg.y =
-    pos_.position_of_leg.z = DEFAULT_LEG_COORD;
-
+    pose_pub_ = n_.advertise<goliath_msgs::Pose>("leg_positions", 10);
     switchConsoleBuffState(false);
+
+    geometry_msgs::Point32 point;
+    point.x = DEFAULT_LEG_COORDS[0];
+    point.y = DEFAULT_LEG_COORDS[1];
+    point.z = DEFAULT_LEG_COORDS[2];
+    for (auto& it : pos_.position_of_legs)
+      it = point;
+
 
     ROS_INFO_STREAM("Goliath leg position teleop."
                     << std::endl
@@ -37,26 +41,26 @@ public:
     switch (c = getchar())
     {
     case 'a':
-      pos_.position_of_leg.x -= STEP;
+      pos_.position_of_legs[leg_numb_].x -= STEP;
       break;
     case 'd':
-      pos_.position_of_leg.x += STEP;
+      pos_.position_of_legs[leg_numb_].x += STEP;
       break;
     case 's':
-      pos_.position_of_leg.y -= STEP;
+      pos_.position_of_legs[leg_numb_].y -= STEP;
       break;
     case 'w':
-      pos_.position_of_leg.y += STEP;
+      pos_.position_of_legs[leg_numb_].y += STEP;
       break;
     case 'r':
-      pos_.position_of_leg.z -= STEP;
+      pos_.position_of_legs[leg_numb_].z -= STEP;
       break;
     case 'f':
-      pos_.position_of_leg.z += STEP;
+      pos_.position_of_legs[leg_numb_].z += STEP;
       break;
     default:
       if (int(c) > '0' && int(c) <= '0' + MAX_LEG_NUMB)
-        pos_.number_of_leg = int(c) - '0';
+        leg_numb_ = int(c) - '0';
       else
         ready_to_pub = false;
       break;
@@ -71,14 +75,15 @@ public:
   }
 
 private:
-  static const double STEP = 0.01;
+  static const double STEP;
   static const int DEFAULT_LEG_NUMB = 1;
   static const int MAX_LEG_NUMB = 6;
-  static const double DEFAULT_LEG_COORD = 0.05;
+  static const double DEFAULT_LEG_COORDS[];
 
   ros::NodeHandle n_;
   ros::Publisher pose_pub_;
   goliath_msgs::Pose pos_;
+  std::size_t leg_numb_;
 
   // disable or enable buffering input
   void switchConsoleBuffState(bool state)
@@ -109,6 +114,9 @@ private:
       tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
   }
 };
+
+const double GoliathTeleop::STEP = 0.01;
+const double GoliathTeleop::DEFAULT_LEG_COORDS[] = {0.05, 0.05, 0.05};
 
 int main(int argc, char* argv[])
 {

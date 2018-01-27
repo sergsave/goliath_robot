@@ -40,16 +40,14 @@ Hexapod::JntNames Hexapod::getJntNames()
   return ret;
 }
 
-Hexapod::Angles Hexapod::getAnglesForSingleLeg(Hexapod::LegType type,
-                                               const RoboLeg::Position& pos)
+void Hexapod::getAnglesForSingleLeg(Hexapod::LegType type,
+                                    const RoboLeg::Position& pos,
+                                    Hexapod::Angles& angs)
 {
-  Hexapod::Angles ret;
   RoboLeg::Angles temp;
 
   if (legs_[type].getAnglesIK(pos, temp) == RoboLeg::OK)
-    ret[type] = temp;
+    angs[type] = temp;
   else
     throw logic_error("Inverse kinematics error!");
-
-  return ret;
 }
