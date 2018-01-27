@@ -9,18 +9,23 @@
 class GoliathTeleop
 {
 public:
-  GoliathTeleop(ros::NodeHandle node) : n_(node), leg_numb_(DEFAULT_LEG_NUMB)
+  GoliathTeleop(ros::NodeHandle node) : n_(node), leg_numb_(0)
   {
     pose_pub_ = n_.advertise<goliath_msgs::Pose>("leg_positions", 10);
     switchConsoleBuffState(false);
 
-    geometry_msgs::Point32 point;
-    point.x = DEFAULT_LEG_COORDS[0];
-    point.y = DEFAULT_LEG_COORDS[1];
-    point.z = DEFAULT_LEG_COORDS[2];
-    for (auto& it : pos_.position_of_legs)
-      it = point;
+    geometry_msgs::Point32 point1;
+    point1.x = DEFAULT_LEG_COORDS[0][0];
+    point1.y = DEFAULT_LEG_COORDS[0][1];
+    point1.z = DEFAULT_LEG_COORDS[0][2];
+    geometry_msgs::Point32 point2;
+    point2.x = DEFAULT_LEG_COORDS[1][0];
+    point2.y = DEFAULT_LEG_COORDS[1][1];
+    point2.z = DEFAULT_LEG_COORDS[1][2];
 
+    std::size_t sz = pos_.position_of_legs.size();
+    for (std::size_t i = 0; i != sz; ++i)
+      pos_.position_of_legs[i] = (i < sz / 2) ? point1 : point2;
 
     ROS_INFO_STREAM("Goliath leg position teleop."
                     << std::endl
@@ -60,7 +65,7 @@ public:
       break;
     default:
       if (int(c) > '0' && int(c) <= '0' + MAX_LEG_NUMB)
-        leg_numb_ = int(c) - '0';
+        leg_numb_ = int(c) - 1 - '0';
       else
         ready_to_pub = false;
       break;
@@ -68,17 +73,17 @@ public:
 
     if (ready_to_pub)
     {
-      ROS_INFO_STREAM(std::endl
-                      << pos_);
+      ROS_INFO_STREAM(std::endl << "Leg's number - " <<
+                      (leg_numb_ + 1) << std::endl
+                      << pos_.position_of_legs[leg_numb_]);
       pose_pub_.publish(pos_);
     }
   }
 
 private:
   static const double STEP;
-  static const int DEFAULT_LEG_NUMB = 1;
   static const int MAX_LEG_NUMB = 6;
-  static const double DEFAULT_LEG_COORDS[];
+  static const double DEFAULT_LEG_COORDS[2][3];
 
   ros::NodeHandle n_;
   ros::Publisher pose_pub_;
@@ -116,7 +121,8 @@ private:
 };
 
 const double GoliathTeleop::STEP = 0.01;
-const double GoliathTeleop::DEFAULT_LEG_COORDS[] = {0.05, 0.05, 0.05};
+const double GoliathTeleop::DEFAULT_LEG_COORDS[2][3] = {{-0.05, 0.00, 0.05},
+                                                      {0.05, 0.00, 0.05}};
 
 int main(int argc, char* argv[])
 {
