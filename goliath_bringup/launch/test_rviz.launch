@@ -3,7 +3,7 @@
   <arg name="gui" default="true" />
   <arg name="rvizconfig" default="$(find goliath_description)/rviz/urdf.rviz" />
 
-  <param name="robot_description" command="$(find xacro)/xacro.py '$(find goliath_description)/urdf/goliath_model.urdf'" />
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find goliath_description)/urdf/goliath_model.xacro'" />
   <param name="use_gui" value="$(arg gui)"/>
 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />

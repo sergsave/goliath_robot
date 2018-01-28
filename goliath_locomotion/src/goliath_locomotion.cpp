@@ -19,12 +19,12 @@ using std::endl;
 class GoliathLocomotion
 {
 public:
-  GoliathLocomotion(string robot_urdf, ros::NodeHandle node) : n_(node)
+  GoliathLocomotion(ros::NodeHandle node) : n_(node)
   {
     urdf::Model model;
-    if (!model.initFile(robot_urdf))
+    if (!model.initParam("robot_description"))
     {
-      ROS_ERROR_STREAM("Failed, \"" << robot_urdf << "\" is not a URDF file."
+      ROS_FATAL_STREAM("Need a \"robot description\" parameter on server"
                                     << endl);
       exit(-1);
     }
@@ -67,8 +67,7 @@ private:
     {
       try
       {
-        hexapod_.getAnglesForSingleLeg(Hexapod::LegType(n),
-                                       legs_pos[n], angs);
+        hexapod_.getAnglesForSingleLeg(Hexapod::LegType(n), legs_pos[n], angs);
       }
       catch (std::logic_error e)
       {
@@ -85,10 +84,9 @@ private:
       }
     jnt_pub_.publish(jnt);
 
-    for (auto n : jnt.name)
-      ROS_INFO_STREAM(" " << n << " ");
-    for (auto p : jnt.position)
-      ROS_INFO_STREAM(" " << p << " ");
+    for (std::size_t i = 0;  i != jnt.name.size(); ++i)
+      ROS_INFO_STREAM(jnt.name[i]<< ' ' << jnt.position[i] << std::endl);
+
   }
 
   ros::NodeHandle n_;
@@ -102,14 +100,8 @@ int main(int argc, char** argv)
   sleep(2); // for debug purpose
   ros::init(argc, argv, "goliath_kinematics");
 
-  if (argc != 2)
-  {
-    ROS_ERROR_STREAM("Need a URDF file as argument.");
-    return -1;
-  }
-
   ros::NodeHandle node;
-  GoliathLocomotion goliath_locomotion(argv[1], node);
+  GoliathLocomotion goliath_locomotion(node);
 
   ros::spin();
   return 0;

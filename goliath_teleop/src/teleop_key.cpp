@@ -73,7 +73,7 @@ public:
 
     if (ready_to_pub)
     {
-      ROS_INFO_STREAM(std::endl << "Leg's number - " <<
+      ROS_INFO_STREAM(std::endl << "Leg's number: " <<
                       (leg_numb_ + 1) << std::endl
                       << pos_.position_of_legs[leg_numb_]);
       pose_pub_.publish(pos_);
@@ -121,8 +121,8 @@ private:
 };
 
 const double GoliathTeleop::STEP = 0.01;
-const double GoliathTeleop::DEFAULT_LEG_COORDS[2][3] = {{-0.05, 0.00, 0.05},
-                                                      {0.05, 0.00, 0.05}};
+const double GoliathTeleop::DEFAULT_LEG_COORDS[2][3] = {{-0.08, 0.00, 0.05},
+                                                      {0.08, 0.00, 0.05}};
 
 int main(int argc, char* argv[])
 {

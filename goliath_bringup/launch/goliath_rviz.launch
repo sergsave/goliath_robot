@@ -2,11 +2,10 @@
 
   <arg name="rvizconfig" default="$(find goliath_description)/rviz/urdf.rviz" />
 
-  <param name="robot_description" command="$(find xacro)/xacro.py '$(find goliath_description)/urdf/goliath_model.urdf'" />
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find goliath_description)/urdf/goliath_model.xacro'" />
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
-  <node name="goliath_locomotion" pkg="goliath_locomotion" type="goliath_locomotion"
-    args="$(find goliath_description)/urdf/goliath_model.urdf"/>
+  <node name="goliath_locomotion" pkg="goliath_locomotion" type="goliath_locomotion" />
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" />
   <node name="teleop" pkg="goliath_teleop" type="teleop_key" args="0.05 0.05 0.05" output="screen" />
 
