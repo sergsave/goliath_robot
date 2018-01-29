@@ -16,20 +16,28 @@ using std::string;
 using std::cout;
 using std::endl;
 
+// this class contain motion control mechanism
+// for Goliath - 6 leg's insect's like robot.
 class GoliathLocomotion
 {
 public:
   GoliathLocomotion(ros::NodeHandle node) : n_(node)
   {
     urdf::Model model;
+
+    //use parameter from ROS parameter server for create URDF-model.
+    //if an xml robot's description is not added to server, and error
+    //will occur
     if (!model.initParam("robot_description"))
     {
       ROS_FATAL_STREAM("Need a \"robot description\" parameter on server"
                                     << endl);
       exit(-1);
     }
+
     hexapod_ = Hexapod(model);
 
+    //create public's publisher and subscriber
     pos_sub_ = n_.subscribe("leg_positions", POS_QUEUE_SZ,
                             &GoliathLocomotion::legPositionCallback, this);
     jnt_pub_ =
@@ -54,6 +62,7 @@ private:
   {
     std::vector<RoboLeg::Position> legs_pos;
 
+    //convert input Pose-message in RoboLeg::pos
     for (auto& it : pos.position_of_legs)
       legs_pos.push_back(RoboLeg::Position(it.x, it.y, it.z));
 
@@ -63,6 +72,7 @@ private:
     sensor_msgs::JointState jnt;
     jnt.header.stamp = ros::Time::now();
 
+    //calculate inverse kinematics for each leg
     for (std::size_t n = 0; n != legs_pos.size(); ++n)
     {
       try
@@ -76,6 +86,7 @@ private:
       }
     }
 
+    // publish msgs to jnt-states topic
     for (std::size_t i = 0; i != angs.size(); ++i)
       for (std::size_t j = 0; j != angs[i].size(); ++j)
       {
@@ -84,6 +95,7 @@ private:
       }
     jnt_pub_.publish(jnt);
 
+    // print all published data for debug - info
     for (std::size_t i = 0;  i != jnt.name.size(); ++i)
       ROS_INFO_STREAM(jnt.name[i]<< ' ' << jnt.position[i] << std::endl);
 
@@ -97,12 +109,15 @@ private:
 
 int main(int argc, char** argv)
 {
-  sleep(2); // for debug purpose
+  // for debug purpose
+  sleep(2);
+  // Let's start ROS!
   ros::init(argc, argv, "goliath_kinematics");
 
   ros::NodeHandle node;
   GoliathLocomotion goliath_locomotion(node);
 
+  //wait
   ros::spin();
   return 0;
 }

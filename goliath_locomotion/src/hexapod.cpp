@@ -16,17 +16,20 @@ const array<string, Hexapod::NUMBER_OF_LEGS> Hexapod::LEG_NAMES = {
     "lf", "lm", "lr", "rf", "rm", "rr",
 };
 
+
 Hexapod::Hexapod(const urdf::Model& model)
 {
-  // Let's try to use range based loop
+  //Range based loop
   for (auto& elem : legs_)
   {
     try
     {
+      //init each leg
       elem = RoboLeg(LEG_NAMES[&elem - legs_.begin()], model);
     }
     catch (invalid_argument e)
     {
+      //if urdf-model is not valid
       ROS_ERROR_STREAM(e.what());
     }
   }

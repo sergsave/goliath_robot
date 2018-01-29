@@ -6,6 +6,8 @@
 #include <sstream>
 #include "signal.h"
 
+// class contains instruments for remote control Goliath robot.
+// it use a keyboard for send Pose message to topic
 class GoliathTeleop
 {
 public:
@@ -14,6 +16,7 @@ public:
     pose_pub_ = n_.advertise<goliath_msgs::Pose>("leg_positions", 10);
     switchConsoleBuffState(false);
 
+    // init position of legs
     geometry_msgs::Point32 point1;
     point1.x = DEFAULT_LEG_COORDS[0][0];
     point1.y = DEFAULT_LEG_COORDS[0][1];
@@ -43,6 +46,7 @@ public:
     bool ready_to_pub = true;
     int c;
 
+    //use low-level function getchar (cin doesn't work with unbuffered input)
     switch (c = getchar())
     {
     case 'a':
@@ -64,6 +68,7 @@ public:
       pos_.position_of_legs[leg_numb_].z += STEP;
       break;
     default:
+      // change leg's number if digit is pressed
       if (int(c) > '0' && int(c) <= '0' + MAX_LEG_NUMB)
         leg_numb_ = int(c) - 1 - '0';
       else
@@ -81,8 +86,11 @@ public:
   }
 
 private:
+  //iteration of Pose, when press the key
   static const double STEP;
   static const int MAX_LEG_NUMB = 6;
+  //first index - side of legs (0/1 - left or right)
+  //second index - location of legs (0 - front, 1 - middle, 2 - rear)
   static const double DEFAULT_LEG_COORDS[2][3];
 
   ros::NodeHandle n_;
@@ -90,32 +98,33 @@ private:
   goliath_msgs::Pose pos_;
   std::size_t leg_numb_;
 
-  // disable or enable buffering input
+  //disable or enable buffering input
+  //without this method you have to press "enter" key after each button
   void switchConsoleBuffState(bool state)
   {
     static struct termios oldt, newt;
     if (!state)
     {
-      /*tcgetattr gets the parameters of the current terminal
-      STDIN_FILENO will tell tcgetattr that it should write the settings
-      of stdin to oldt*/
+      //tcgetattr gets the parameters of the current terminal
+      //STDIN_FILENO will tell tcgetattr that it should write the settings
+      //of stdin to oldt
       tcgetattr(STDIN_FILENO, &oldt);
-      /*now the settings will be copied*/
+      //now the settings will be copied
       newt = oldt;
 
-      /*ICANON normally takes care that one line at a time will be processed
-      that means it will return if it sees a "\n" or an EOF or an EOL*/
+      //ICANON normally takes care that one line at a time will be processed
+      //that means it will return if it sees a "\n" or an EOF or an EOL
       newt.c_lflag &= ~(ICANON | ECHO);
 
-      /*For non-blocking getchar*/
+      //For non-blocking getchar
       newt.c_cc[VMIN] = newt.c_cc[VTIME] = 0;
 
-      /*Those new settings will be set to STDIN
-      TCSANOW tells tcsetattr to change attributes immediately. */
+      //Those new settings will be set to STDIN
+      //TCSANOW tells tcsetattr to change attributes immediately.
       tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     }
     else
-      /*restore the old settings*/
+      //restore the old settings
       tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
   }
 };
@@ -126,6 +135,7 @@ const double GoliathTeleop::DEFAULT_LEG_COORDS[2][3] = {{-0.08, 0.00, 0.05},
 
 int main(int argc, char* argv[])
 {
+  //let's star
   ros::init(argc, argv, "teleop");
   ros::NodeHandle n;
   ros::Rate loop_rate(10);

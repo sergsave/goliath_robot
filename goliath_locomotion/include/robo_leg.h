@@ -12,6 +12,7 @@
 #include <string>
 #include <array>
 
+//this class contain a description of insect-like robot's Leg
 class RoboLeg
 {
 public:
@@ -31,6 +32,9 @@ public:
     WARNING,
     ERROR
   };
+
+  //coxa - latin's name of shoulder, femur - part from shouler to elbow,
+  //tibia - forearms analog in insect body
   enum SegmentType
   {
     COXA = 0,
@@ -39,15 +43,21 @@ public:
     NUMBER_OF_SEGMENTS
   };
 
+  //types and methods for return states of all leg's joints
   typedef std::array<double, NUMBER_OF_SEGMENTS> Angles;
   typedef std::array<std::string, NUMBER_OF_SEGMENTS> JntNames;
 
+  //IK - inverse kinematics. Determining a joint's angles from
+  //position of leg end
   IKResult getAnglesIK(const Position&, Angles&);
   JntNames getJntNames();
 
 private:
+  //this array contain more members than segments in the leg,
+  //because there is a additional fixed node - "leg end"
   static const std::array<std::string, NUMBER_OF_SEGMENTS + 1> JNT_BASE_NAMES;
 
+  //indivisible part of leg
   struct Segment
   {
     Segment() : length(0), init_angle(0), min_angle(0), max_angle(0) {}

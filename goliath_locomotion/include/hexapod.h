@@ -12,12 +12,18 @@
 #include <array>
 #include "robo_leg.h"
 
+//class describes the insect-like six leg's robot
+//class have instruments for calculating inverse and forward
+//kinematics
 class Hexapod
 {
 public:
   Hexapod() {}
   Hexapod(const urdf::Model&);
 
+  //Enum for leg's side and location
+  //left forward, left middle, left rear
+  //right forward, right middle, right rear
   enum LegType
   {
     LF = 0,
@@ -28,6 +34,8 @@ public:
     RR,
     NUMBER_OF_LEGS
   };
+
+  //method's for calculating
   typedef std::array<RoboLeg::Angles, NUMBER_OF_LEGS> Angles;
   typedef std::array<RoboLeg::JntNames, NUMBER_OF_LEGS> JntNames;
 

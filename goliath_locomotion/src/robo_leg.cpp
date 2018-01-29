@@ -21,12 +21,12 @@ RoboLeg::RoboLeg(const string& leg_prefix, const Model& model)
 {
   array<JointConstSharedPtr, NUMBER_OF_SEGMENTS + 1> jnt;
 
-  // create joint for leg end (fixed joint)
+  // create joint for leg end (fixed joint) from model
   if ((jnt[NUMBER_OF_SEGMENTS] = model.getJoint(
            leg_prefix + '_' + JNT_BASE_NAMES[NUMBER_OF_SEGMENTS])) == NULL)
     throw invalid_argument("Not a valid URDF-model in " + leg_prefix + " leg");
 
-  // create all other joints
+  // create all other joints from model
   for (std::size_t i = COXA; i != segs_.size(); ++i)
   {
     segs_[i].name = leg_prefix + '_' + JNT_BASE_NAMES[i];
@@ -42,6 +42,7 @@ RoboLeg::RoboLeg(const string& leg_prefix, const Model& model)
     }
   }
 
+  //set joint's parameters from urdf-model
   segs_[COXA].length =
       fabs(jnt[FEMUR]->parent_to_joint_origin_transform.position.x);
   segs_[FEMUR].length =
@@ -64,28 +65,34 @@ RoboLeg::IKResult RoboLeg::getAnglesIK(const Position& pos, Angles& angs)
 {
   Angles temp;
   temp[COXA] = atan2(pos.y, pos.x) - segs_[COXA].init_angle;
+
   // round up the angle
   temp[COXA] +=
       temp[COXA] > M_PI ? -2 * M_PI : (temp[COXA] < -M_PI ? 2 * M_PI : 0);
 
-  // additional angles and length for calculations
-  // xy - coordinate of point on the leg axis
-  // s - distance beetween root of the leg and point
+  // additional angles and length for calculations,
+  // xy - coordinate of point on the leg axis,
+  // s - distance beetween root of the leg and point.
   double xy, s;
   double alpha, beta;
 
   xy = hypot(pos.x, pos.y) - segs_[COXA].length;
   alpha = atan2(xy, pos.z);
   s = hypot(xy, pos.z);
+
+  //Use cos-theorem
   beta = acos(
       (pow(segs_[FEMUR].length, 2) + pow(s, 2) - pow(segs_[TIBIA].length, 2)) /
       (2 * s * segs_[FEMUR].length));
   temp[FEMUR] = M_PI / 2 - (alpha + beta) - segs_[FEMUR].init_angle;
+
+  //calculate tibia angle with cos-theorem
   temp[TIBIA] = -segs_[TIBIA].init_angle -
                 acos((pow(segs_[FEMUR].length, 2) +
                       pow(segs_[TIBIA].length, 2) - pow(s, 2)) /
                      (2 * segs_[TIBIA].length * segs_[FEMUR].length));
 
+  //protection from robot's legs crash
   if (checkAngles(temp))
   {
     angs = temp;
