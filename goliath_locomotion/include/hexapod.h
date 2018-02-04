@@ -11,6 +11,7 @@
 #include <string>
 #include <array>
 #include "robo_leg.h"
+#include "goliath_msgs/Body_pos.h"
 
 //class describes the insect-like six leg's robot
 //class have instruments for calculating inverse and forward
@@ -40,8 +41,18 @@ public:
   typedef std::array<RoboLeg::JntNames, NUMBER_OF_LEGS> JntNames;
 
   void getAnglesForSingleLeg(LegType, const RoboLeg::Position&, Angles &angs);
+  void getAnglesFromBodyPos(LegType type, const goliath_msgs::Body_pos&,
+                                     Angles& angs);
   JntNames getJntNames();
 
+  RoboLeg::Position getGround()
+  {
+    RoboLeg::Position ret;
+    ret.x = 0;
+    ret.y = 0;
+    ret.z = -legs_[LF].getDefault().z;
+    return ret;
+  }
 private:
   static const std::array<std::string, NUMBER_OF_LEGS> LEG_NAMES;
   std::array<RoboLeg, NUMBER_OF_LEGS> legs_;

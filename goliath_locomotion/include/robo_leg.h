@@ -21,6 +21,7 @@ public:
 
   struct Position
   {
+    Position(): x(0), y(0), z(0){}
     Position(double x, double y, double z) : x(x), y(y), z(z) {}
     double x;
     double y;
@@ -51,6 +52,11 @@ public:
   //position of leg end
   IKResult getAnglesIK(const Position&, Angles&);
   JntNames getJntNames();
+  Position origin()
+  {
+    return origin_;
+  }
+  Position getDefault();
 
 private:
   //this array contain more members than segments in the leg,
@@ -71,6 +77,10 @@ private:
       return angle <= max_angle && angle >= min_angle;
     }
   };
+
+  //position on the body
+  Position origin_;
+
   std::array<Segment, NUMBER_OF_SEGMENTS> segs_;
   bool checkAngles(Angles&) const;
 };

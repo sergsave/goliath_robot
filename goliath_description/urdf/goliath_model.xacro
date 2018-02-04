@@ -4,8 +4,8 @@
   <xacro:property name="coxa_length" value="0.022" />
   <xacro:property name="femur_length" value="0.08" />
   <xacro:property name="tibia_length" value="0.115" />
-  <xacro:property name="leg_base_angle" value="${34.4/180*pi}" />
-
+  <!-- <xacro:property name="leg_base_angle" value="${34.4/180*pi}" /> -->
+  <xacro:property name="leg_base_angle" value="${45/180*pi}" />
 
   <xacro:property name="legs_joint_effort" value="6.0"/>
   <xacro:property name="legs_joint_velocity" value="0.524"/>
@@ -63,7 +63,7 @@
     <joint name="${side}${location}_femur_joint" type="revolute">
       <parent link="${side}${location}_coxa_link"/>
       <child link="${side}${location}_femur_link"/>
-      <origin xyz="${coxa_length} 0.00 0.00" rpy="0 -0.785 0.0"/>
+      <origin xyz="${coxa_length} 0.00 0.00" rpy="0 ${-pi/4} 0.0"/>
       <limit effort="${legs_joint_effort}" velocity="${legs_joint_velocity}" lower="-3.14" upper="3.14"/>
       <axis xyz="0 1 0"/>
     </joint>
@@ -81,7 +81,7 @@
     <joint name="${side}${location}_tibia_joint" type="revolute">
       <parent link="${side}${location}_femur_link"/>
       <child link="${side}${location}_tibia_link"/>
-      <origin xyz="${femur_length} 0.0 0.0" rpy="0 -0.785 0"/>
+      <origin xyz="${femur_length} 0.0 0.0" rpy="0 ${-pi/4} 0"/>
       <limit effort="${legs_joint_effort}" velocity="${legs_joint_velocity}" lower="-3.14" upper="3.14"/>
       <axis xyz="0 1 0"/>
     </joint>
@@ -91,7 +91,7 @@
         <geometry>
            <mesh filename="package://goliath_description/meshes/leg_end.stl" scale= "0.001 0.001 0.001" />
         </geometry>
-        <origin xyz="0.0 0.0 0.0" rpy="0 0.25 0"/>
+        <origin xyz="0.0 0.0 0.0" rpy="0 ${0.25 - pi/2} 0"/>
         <material name="rubber"/>
       </visual>
     </link>
@@ -99,11 +99,11 @@
     <joint name="${side}${location}_tarsus_joint" type="fixed">
       <parent link="${side}${location}_tibia_link"/>
       <child link="${side}${location}_tarsus_link"/>
-      <origin xyz="-${tibia_length} 0.0 0"/>
+      <origin xyz="-${tibia_length} 0.0 0" rpy="0 ${pi/2} 0"/>
     </joint>
 
   </xacro:macro>
-
+s
   <xacro:leg side="l" location="f" x="-0.063" y="0.092"  angle="${pi - leg_base_angle}" />
   <xacro:leg side="l" location="m" x="-0.072" y="0"      angle="${pi}" />
   <xacro:leg side="l" location="r" x="-0.063" y="-0.092" angle="${-(pi - leg_base_angle)}" />

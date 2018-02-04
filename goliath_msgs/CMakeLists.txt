@@ -49,6 +49,7 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
   FILES
   Pose.msg
+  Body_pos.msg
 #   Message2.msg
  )
 

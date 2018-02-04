@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
     urdf
     std_msgs
     goliath_msgs
+    tf
 )
 
 ## System dependencies are found with CMake's conventions
