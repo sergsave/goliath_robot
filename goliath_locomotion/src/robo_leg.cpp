@@ -85,8 +85,8 @@ RoboLeg::IKResult RoboLeg::getAnglesIK(const Position& pos, Angles& angs)
   if(xy > segs_[TIBIA].length + segs_[FEMUR].length)
     return ERROR;
 
-  alpha = atan2(xy, pos.z);
-  s = hypot(xy, pos.z);
+  alpha = atan2(xy, -pos.z);
+  s = hypot(xy, -pos.z);
 
   // Use cos-theorem
   beta = acos(
@@ -140,5 +140,6 @@ RoboLeg::Position RoboLeg::getDefault()
 
   ret.x = xy*cos(segs_[COXA].init_angle);
   ret.y = xy*sin(segs_[COXA].init_angle);
+  ret.z = - ret.z;
   return ret;
 }

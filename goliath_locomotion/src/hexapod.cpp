@@ -57,24 +57,25 @@ void Hexapod::getAnglesForSingleLeg(Hexapod::LegType type,
     throw logic_error("Inverse kinematics error!");
 }
 
-void Hexapod::getAnglesFromBodyPos(Hexapod::LegType type,
-                                   const goliath_msgs::Body_pos& pos,
-                                   Hexapod::Angles& angs)
+void Hexapod::getAnglesFromBodyPose(Hexapod::LegType type,
+                                   const goliath_msgs::BodyPose& pose,
+                                   Hexapod::Angles& angs,
+                                   RoboLeg::Position& debug)
 {
   RoboLeg::Position origin = legs_[type].origin();
   RoboLeg::Position default_pos = legs_[type].getDefault();
-  boost::numeric::ublas::vector<double> vec_origin(3);
+  boost::numeric::ublas::vector<double> leg_end(3);
 
-  vec_origin(0) = origin.x; //+ default_pos.x;
-  vec_origin(1) = origin.y; //+ default_pos.y;
-  vec_origin(2) = origin.z; //+ default_pos.z;
+  leg_end(0) = origin.x + default_pos.x - pose.position.x;
+  leg_end(1) = origin.y + default_pos.y - pose.position.y;
+  leg_end(2) = origin.z + default_pos.z - pose.position.z;
 
-  double a = cos(pos.roll);
-  double b = sin(pos.roll);
-  double c = cos(pos.pitch);
-  double d = sin(pos.pitch);
-  double e = cos(pos.yaw);
-  double f = sin(pos.yaw);
+  double a = cos(-pose.roll);
+  double b = sin(-pose.roll);
+  double c = cos(-pose.pitch);
+  double d = sin(-pose.pitch);
+  double e = cos(-pose.yaw);
+  double f = sin(-pose.yaw);
 
   boost::numeric::ublas::matrix<double> mat_x(3, 3);
   mat_x(0, 0) = 1, mat_x(0, 1) = 0, mat_x(0, 2) = 0;
@@ -94,52 +95,15 @@ void Hexapod::getAnglesFromBodyPos(Hexapod::LegType type,
   boost::numeric::ublas::matrix<double> rotation =
       boost::numeric::ublas::prod(mat_1, mat_x);
 
-  boost::numeric::ublas::vector<double> vec_origin_rot =
-      boost::numeric::ublas::prod(rotation, vec_origin);
-  if (type == LF)
-    ROS_ERROR_STREAM(" rotated origin: " << vec_origin_rot);
+  boost::numeric::ublas::vector<double> leg_end_in_rot_frame =
+      boost::numeric::ublas::prod(rotation, leg_end);
 
-  boost::numeric::ublas::vector<double> vec(3);
-  vec(0) = (origin.x + default_pos.x) - vec_origin_rot(0);
-  vec(1) = (origin.y + default_pos.y) - vec_origin_rot(1);
-  vec(2) = (origin.z + default_pos.z) - vec_origin_rot(2);
-
-  if (type == LF)
-    ROS_ERROR_STREAM(" leg end coord - rotated origin coord " << vec);
-
-  a = cos(-pos.roll);
-  b = sin(-pos.roll);
-  c = cos(-pos.pitch);
-  d = sin(-pos.pitch);
-  e = cos(-pos.yaw);
-  f = sin(-pos.yaw);
-
-  mat_x(0, 0) = 1, mat_x(0, 1) = 0, mat_x(0, 2) = 0;
-  mat_x(1, 0) = 0, mat_x(1, 1) = a, mat_x(1, 2) = -b;
-  mat_x(2, 0) = 0, mat_x(2, 1) = b, mat_x(2, 2) = a;
-
-  mat_y(0, 0) = c, mat_y(0, 1) = 0, mat_y(0, 2) = d;
-  mat_y(1, 0) = 0, mat_y(1, 1) = 1, mat_y(1, 2) = 0;
-  mat_y(2, 0) = -d, mat_y(2, 1) = 0, mat_y(2, 2) = c;
-
-  mat_z(0, 0) = e, mat_z(0, 1) = -f, mat_z(0, 2) = 0;
-  mat_z(1, 0) = f, mat_z(1, 1) = e, mat_z(1, 2) = 0;
-  mat_z(2, 0) = 0, mat_z(2, 1) = 0, mat_z(2, 2) = 1;
-
-  mat_1 = boost::numeric::ublas::prod(mat_z, mat_y);
-  rotation = boost::numeric::ublas::prod(mat_1, mat_x);
-
-  boost::numeric::ublas::vector<double> vec_rot =
-      boost::numeric::ublas::prod(rotation, vec);
-
-  if (type == LF)
-    ROS_ERROR_STREAM(" result " << vec_rot);
 
   RoboLeg::Angles temp;
   RoboLeg::Position fin_pos;
-  fin_pos.x = vec_rot(0);//default_pos.x - vec_rot(0);
-  fin_pos.y = vec_rot(1);//default_pos.y - vec_rot(1);
-  fin_pos.z = vec_rot(2);//default_pos.z - vec_rot(2);
+  fin_pos.x = leg_end_in_rot_frame(0) - origin.x;
+  fin_pos.y = leg_end_in_rot_frame(1) - origin.y;
+  fin_pos.z = leg_end_in_rot_frame(2) - origin.z;
 
   if (legs_[type].getAnglesIK(fin_pos, temp) == RoboLeg::OK)
     angs[type] = temp;

@@ -4,8 +4,7 @@
   <xacro:property name="coxa_length" value="0.022" />
   <xacro:property name="femur_length" value="0.08" />
   <xacro:property name="tibia_length" value="0.115" />
-  <!-- <xacro:property name="leg_base_angle" value="${34.4/180*pi}" /> -->
-  <xacro:property name="leg_base_angle" value="${45/180*pi}" />
+  <xacro:property name="leg_base_angle" value="${34.4/180*pi}" />
 
   <xacro:property name="legs_joint_effort" value="6.0"/>
   <xacro:property name="legs_joint_velocity" value="0.524"/>
@@ -46,7 +45,7 @@
       <parent link="body_link"/>
       <child link="${side}${location}_coxa_link"/>
       <origin xyz="${x} ${y} 0.00" rpy="0 0 ${angle}"/>
-      <limit effort="${legs_joint_effort}" velocity="${legs_joint_velocity}" lower="-3.14" upper="3.14"/>
+      <limit effort="${legs_joint_effort}" velocity="${legs_joint_velocity}" lower="-0.93" upper="0.93"/>
       <axis xyz="0 0 1"/>
     </joint>
 
@@ -64,7 +63,7 @@
       <parent link="${side}${location}_coxa_link"/>
       <child link="${side}${location}_femur_link"/>
       <origin xyz="${coxa_length} 0.00 0.00" rpy="0 ${-pi/4} 0.0"/>
-      <limit effort="${legs_joint_effort}" velocity="${legs_joint_velocity}" lower="-3.14" upper="3.14"/>
+      <limit effort="${legs_joint_effort}" velocity="${legs_joint_velocity}" lower="-0.88" upper="2.27"/>
       <axis xyz="0 1 0"/>
     </joint>
 
@@ -82,7 +81,7 @@
       <parent link="${side}${location}_femur_link"/>
       <child link="${side}${location}_tibia_link"/>
       <origin xyz="${femur_length} 0.0 0.0" rpy="0 ${-pi/4} 0"/>
-      <limit effort="${legs_joint_effort}" velocity="${legs_joint_velocity}" lower="-3.14" upper="3.14"/>
+      <limit effort="${legs_joint_effort}" velocity="${legs_joint_velocity}" lower="-2.6" upper="0.44"/>
       <axis xyz="0 1 0"/>
     </joint>
 
