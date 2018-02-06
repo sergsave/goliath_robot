@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>goliath_locomotion</name>
+  <name>goliath_motion</name>
   <version>0.1.0</version>
-  <description>The goliath_locomotion package</description>
+  <description>The goliath_motion package</description>
 
   <license>BSD</license>
   <author email="sa.savenko92@gmail.com">Sergey Savenko</author>
@@ -15,13 +15,11 @@
   <build_depend>goliath_msgs</build_depend>
   <build_depend>urdf</build_depend>
   <build_depend>tf</build_depend>
-  <build_depend>visualization_msgs</build_depend>
 
   <exec_depend>urdf</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>goliath_msgs</exec_depend>
   <exec_depend>tf</exec_depend>
-  <exec_depend>visualization_msgs</exec_depend>
 
 </package>

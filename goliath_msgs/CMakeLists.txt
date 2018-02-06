@@ -48,7 +48,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
  add_message_files(
   FILES
-  LegPosition.msg
+  LegsPosition.msg
   BodyPose.msg
 #   Message2.msg
  )

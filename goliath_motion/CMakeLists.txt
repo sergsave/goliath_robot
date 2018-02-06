@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(goliath_locomotion)
+project(goliath_motion)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs
     goliath_msgs
     tf
-    visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -201,7 +200,7 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(goliath_locomotion src/goliath_locomotion.cpp
-                                  src/hexapod.cpp
-                                  src/robo_leg.cpp)
-target_link_libraries(goliath_locomotion ${catkin_LIBRARIES})
+add_executable(goliath_motion src/goliath_motion.cpp
+                                  src/body_kinematics.cpp
+                                  src/leg_kinematics.cpp)
+target_link_libraries(goliath_motion ${catkin_LIBRARIES})

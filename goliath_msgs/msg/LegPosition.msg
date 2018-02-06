@@ -1,2 +1,0 @@
-int8 number_of_leg
-geometry_msgs/Point32 position_of_leg
