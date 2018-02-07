@@ -4,7 +4,7 @@
   <xacro:property name="coxa_length" value="0.022" />
   <xacro:property name="femur_length" value="0.08" />
   <xacro:property name="tibia_length" value="0.115" />
-  <xacro:property name="leg_base_angle" value="${34.4/180*pi}" />
+  <xacro:property name="leg_base_angle" value="${55.6/180*pi}" />
 
   <xacro:property name="legs_joint_effort" value="6.0"/>
   <xacro:property name="legs_joint_velocity" value="0.524"/>
@@ -23,7 +23,7 @@
       <geometry>
         <mesh filename="package://goliath_description/meshes/body.stl" scale= "0.001 0.001 0.001" />
       </geometry>
-      <origin xyz="0.0 0.0 0.0448" rpy="0 0 0"/>
+      <origin xyz="0.0 0.0 0.0448" rpy="0 0 ${-pi/2}"/>
       <material name="alumunium"/>
     </visual>
   </link>
@@ -102,13 +102,13 @@
     </joint>
 
   </xacro:macro>
-s
-  <xacro:leg side="l" location="f" x="-0.063" y="0.092"  angle="${pi - leg_base_angle}" />
-  <xacro:leg side="l" location="m" x="-0.072" y="0"      angle="${pi}" />
-  <xacro:leg side="l" location="r" x="-0.063" y="-0.092" angle="${-(pi - leg_base_angle)}" />
 
-  <xacro:leg side="r" location="f" x="0.063"  y="0.092"  angle="${leg_base_angle}" />
-  <xacro:leg side="r" location="m" x="0.072"  y="0"      angle="${0}" />
-  <xacro:leg side="r" location="r" x="0.063"  y="-0.092" angle="-${leg_base_angle}" />
+  <xacro:leg side="l" location="f" x="0.092"  y="0.063"   angle="${leg_base_angle}" />
+  <xacro:leg side="l" location="m" x="0"      y="0.072"   angle="${pi/2}" />
+  <xacro:leg side="l" location="r" x="-0.092" y="0.063"   angle="${pi - leg_base_angle}" />
+
+  <xacro:leg side="r" location="f" x="0.092"  y="-0.063"  angle="${-leg_base_angle}" />
+  <xacro:leg side="r" location="m" x="0"      y="-0.072"  angle="${-pi/2}" />
+  <xacro:leg side="r" location="r" x="-0.092" y="-0.063"  angle="${-pi + leg_base_angle}" />
 
 </robot>

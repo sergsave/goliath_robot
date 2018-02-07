@@ -59,29 +59,29 @@ public:
       this->setLegsPosToDefault();
       this->setBodyPoseToDefault();
       break;
-    case 67: // right arrow
-      if (mode_ == LEGS_MODE)
-        legs_pos_.position_of_legs[curr_leg_numb_].x += LEG_XYZ_STEP;
-      else
-        body_pose_.position.x += BODY_XYZ_STEP;
-      break;
     case 68: // left arrow
-      if (mode_ == LEGS_MODE)
-        legs_pos_.position_of_legs[curr_leg_numb_].x -= LEG_XYZ_STEP;
-      else
-        body_pose_.position.x -= BODY_XYZ_STEP;
-      break;
-    case 65: // up arrow
       if (mode_ == LEGS_MODE)
         legs_pos_.position_of_legs[curr_leg_numb_].y += LEG_XYZ_STEP;
       else
         body_pose_.position.y += BODY_XYZ_STEP;
       break;
-    case 66: // down arrow
+    case 67: // right arrow
       if (mode_ == LEGS_MODE)
         legs_pos_.position_of_legs[curr_leg_numb_].y -= LEG_XYZ_STEP;
       else
         body_pose_.position.y -= BODY_XYZ_STEP;
+      break;
+    case 65: // up arrow
+      if (mode_ == LEGS_MODE)
+        legs_pos_.position_of_legs[curr_leg_numb_].x += LEG_XYZ_STEP;
+      else
+        body_pose_.position.x += BODY_XYZ_STEP;
+      break;
+    case 66: // down arrow
+      if (mode_ == LEGS_MODE)
+        legs_pos_.position_of_legs[curr_leg_numb_].x -= LEG_XYZ_STEP;
+      else
+        body_pose_.position.x -= BODY_XYZ_STEP;
       break;
     case '+':
     case '=':
@@ -98,25 +98,25 @@ public:
       break;
     case 'a':
       if (mode_ == BODY_MODE)
-        body_pose_.pitch -= BODY_RPY_STEP;
+        body_pose_.roll -= BODY_RPY_STEP;
       else
         ready_to_pub = false;
       break;
     case 'd':
       if (mode_ == BODY_MODE)
-        body_pose_.pitch += BODY_RPY_STEP;
-      else
-        ready_to_pub = false;
-      break;
-    case 'w':
-      if (mode_ == BODY_MODE)
-        body_pose_.roll -= BODY_RPY_STEP;
+        body_pose_.roll += BODY_RPY_STEP;
       else
         ready_to_pub = false;
       break;
     case 's':
       if (mode_ == BODY_MODE)
-        body_pose_.roll += BODY_RPY_STEP;
+        body_pose_.pitch -= BODY_RPY_STEP;
+      else
+        ready_to_pub = false;
+      break;
+    case 'w':
+      if (mode_ == BODY_MODE)
+        body_pose_.pitch += BODY_RPY_STEP;
       else
         ready_to_pub = false;
       break;
@@ -239,22 +239,22 @@ private:
       switch (i)
       {
       case 0:
-        x = -0.05, y = 0.05;
-        break;
-      case 1:
-        x = -0.05, y = 0;
-        break;
-      case 2:
-        x = -0.05, y = -0.05;
-        break;
-      case 3:
         x = 0.05, y = 0.05;
         break;
+      case 1:
+        x = 0, y = 0.05;
+        break;
+      case 2:
+        x = -0.05, y = 0.05;
+        break;
+      case 3:
+        x = 0.05, y = -0.05;
+        break;
       case 4:
-        x = 0.05, y = 0;
+        x = 0, y = -0.05;
         break;
       case 5:
-        x = 0.05, y = -0.05;
+        x = -0.05, y = -0.05;
         break;
       default:
         break;

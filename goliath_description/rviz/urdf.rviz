@@ -199,8 +199,6 @@ Visualization Manager:
         All Enabled: true
         body_link:
           Value: true
-        center_of_rotation:
-          Value: true
         ground:
           Value: true
         lf_coxa_link:
@@ -258,9 +256,8 @@ Visualization Manager:
       Show Names: true
       Tree:
         body_link:
-          center_of_rotation:
-            ground:
-              {}
+          ground:
+            {}
           lf_coxa_link:
             lf_femur_link:
               lf_tibia_link:
@@ -326,7 +323,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.632091403
+      Distance: 0.823684692
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -341,10 +338,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.655397117
+      Pitch: 0.190396965
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.91861868
+      Yaw: 2.82862067
     Saved: ~
 Window Geometry:
   Displays:

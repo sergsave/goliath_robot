@@ -96,6 +96,7 @@ private:
   void publishTransformToGroundFrame()
   {
     tf::Transform transform;
+    transform.setRotation(tf::Quaternion(0,0,0,1));
     transform.setOrigin(tf::Vector3(0, 0, body_.getClearance()));
     tf_br_.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
                                               "body_link", "ground"));

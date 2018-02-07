@@ -57,7 +57,7 @@ void BodyKinematics::calculateJntAngles(
   {
     if (legs_[i].calculateJntAngles(leg_pos.position_of_legs[i], jnt) ==
         LegKinematics::ERROR)
-      throw logic_error("Inverse kinematics error!");
+      throw logic_error("Inverse kinematics error in " + LEG_NAMES[i] + " leg!");
   }
 }
 
@@ -102,7 +102,7 @@ void BodyKinematics::calculateJntAngles(const goliath_msgs::BodyPose& pose,
     fin_pos.z = leg_end_in_rot_frame.z - leg_origins_[i].z;
 
     if (legs_[i].calculateJntAngles(fin_pos, jnt) == LegKinematics::ERROR)
-      throw logic_error("Inverse kinematics error!");
+      throw logic_error("Inverse kinematics error in " + LEG_NAMES[i] + " leg!");
   }
 }
 
