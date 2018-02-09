@@ -21,8 +21,8 @@ public:
     body_pose_pub_ =
         n_.advertise<goliath_msgs::BodyPose>("body_pose", BODY_POSE_QUEUE_SZ);
 
-    this->setLegsPosToDefault();
-    this->setBodyPoseToDefault();
+    setLegsPosToDefault();
+    setBodyPoseToDefault();
 
     ROS_INFO_STREAM(
         endl
@@ -50,14 +50,14 @@ public:
     case 'l':
       mode_ = LEGS_MODE;
       ROS_INFO_STREAM("Legs mode" << endl);
-      this->setLegsPosToDefault();
-      this->setBodyPoseToDefault();
+      setLegsPosToDefault();
+      setBodyPoseToDefault();
       break;
     case 'b':
       mode_ = BODY_MODE;
       ROS_INFO_STREAM("Body mode" << endl);
-      this->setLegsPosToDefault();
-      this->setBodyPoseToDefault();
+      setLegsPosToDefault();
+      setBodyPoseToDefault();
       break;
     case 68: // left arrow
       if (mode_ == LEGS_MODE)
@@ -133,8 +133,8 @@ public:
         ready_to_pub = false;
       break;
     case 'o':
-      this->setLegsPosToDefault();
-      this->setBodyPoseToDefault();
+      setLegsPosToDefault();
+      setBodyPoseToDefault();
       break;
     default:
       // change leg's number if digit is pressed
@@ -233,28 +233,28 @@ private:
     // init leg position
     double x, y, z;
 
-    z = -0.05;
+    z = -0.058;
     for (std::size_t i = 0; i != legs_pos_.position_of_legs.size(); ++i)
     {
       switch (i)
       {
       case 0:
-        x = 0.05, y = 0.05;
+        x = 0.044, y = 0.065;
         break;
       case 1:
-        x = 0, y = 0.05;
+        x = 0, y = 0.065;
         break;
       case 2:
-        x = -0.05, y = 0.05;
+        x = -0.044, y = 0.065;
         break;
       case 3:
-        x = 0.05, y = -0.05;
+        x = 0.044, y = -0.065;
         break;
       case 4:
-        x = 0, y = -0.05;
+        x = 0, y = -0.065;
         break;
       case 5:
-        x = -0.05, y = -0.05;
+        x = -0.044, y = -0.065;
         break;
       default:
         break;

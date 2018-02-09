@@ -21,7 +21,7 @@
 class BodyKinematics
 {
 public:
-  BodyKinematics(){}
+  BodyKinematics() {}
   BodyKinematics(const urdf::Model&);
 
   // methods for calculating
@@ -29,10 +29,14 @@ public:
                           sensor_msgs::JointState&);
   void calculateJntAngles(const goliath_msgs::BodyPose&,
                           sensor_msgs::JointState&);
+  void calculateJntAngles(const goliath_msgs::BodyPose&,
+                          const goliath_msgs::LegsPosition&,
+                          sensor_msgs::JointState&);
 
   double getClearance();
-private:
+  goliath_msgs::LegsPosition getDefaultLegsPos();
 
+private:
   // Enum for leg's side and location
   // left forward, left middle, left rear
   // right forward, right middle, right rear
@@ -50,6 +54,6 @@ private:
   static const std::array<std::string, NUMBER_OF_LEGS> LEG_NAMES;
   static const std::string LEG_ROOT_JNT_BASE_NAME;
   std::array<LegKinematics, NUMBER_OF_LEGS> legs_;
-  std::array<geometry_msgs::Point32, NUMBER_OF_LEGS> leg_origins_;
+  std::array<geometry_msgs::Point32, NUMBER_OF_LEGS> legs_origin_;
 };
 #endif /* BODY_KINEMATICS_H */

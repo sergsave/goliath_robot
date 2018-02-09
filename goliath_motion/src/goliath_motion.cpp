@@ -34,10 +34,11 @@ public:
     }
 
     body_ = BodyKinematics(model);
+    legs_pos_ = body_.getDefaultLegsPos();
 
     // create public's publisher and subscriber
-    leg_pos_sub_ = n_.subscribe("legs_position", POS_AND_POSE_QUEUE_SZ,
-                                &GoliathMotion::legPositionCallback, this);
+    legs_pos_sub_ = n_.subscribe("legs_position", POS_AND_POSE_QUEUE_SZ,
+                                &GoliathMotion::legsPositionCallback, this);
 
     body_pose_sub_ = n_.subscribe("body_pose", POS_AND_POSE_QUEUE_SZ,
                                   &GoliathMotion::bodyPoseCallback, this);
@@ -60,7 +61,7 @@ private:
 
     try
     {
-      body_.calculateJntAngles(pose, jnt_st);
+      body_.calculateJntAngles(pose, legs_pos_, jnt_st);
     }
     catch (std::logic_error e)
     {
@@ -70,11 +71,11 @@ private:
 
     publishTransformToGroundFrame(pose);
     jnt_pub_.publish(jnt_st);
-
   }
 
-  void legPositionCallback(const goliath_msgs::LegsPosition& pos)
+  void legsPositionCallback(const goliath_msgs::LegsPosition& pos)
   {
+    legs_pos_ = pos;
     sensor_msgs::JointState jnt_st;
 
     jnt_st.header.stamp = ros::Time::now();
@@ -92,11 +93,10 @@ private:
     jnt_pub_.publish(jnt_st);
   }
 
-
   void publishTransformToGroundFrame()
   {
     tf::Transform transform;
-    transform.setRotation(tf::Quaternion(0,0,0,1));
+    transform.setRotation(tf::Quaternion(0, 0, 0, 1));
     transform.setOrigin(tf::Vector3(0, 0, body_.getClearance()));
     tf_br_.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
                                               "body_link", "ground"));
@@ -105,7 +105,7 @@ private:
   void publishTransformToGroundFrame(const goliath_msgs::BodyPose& pose)
   {
     tf::Transform transform;
-    transform.setOrigin(tf::Vector3(0,0,0));
+    transform.setOrigin(tf::Vector3(0, 0, 0));
     tf::Quaternion q;
     q.setRPY(-pose.roll, -pose.pitch, -pose.yaw);
     transform.setRotation(q);
@@ -122,9 +122,10 @@ private:
 
   ros::NodeHandle n_;
   ros::Publisher jnt_pub_;
-  ros::Subscriber leg_pos_sub_;
+  ros::Subscriber legs_pos_sub_;
   ros::Subscriber body_pose_sub_;
   BodyKinematics body_;
+  goliath_msgs::LegsPosition legs_pos_;
 
   // use for visualisation
   tf::TransformBroadcaster tf_br_;

@@ -202,5 +202,6 @@ include_directories(
 
 add_executable(goliath_motion src/goliath_motion.cpp
                                   src/body_kinematics.cpp
-                                  src/leg_kinematics.cpp)
+                                  src/leg_kinematics.cpp
+                                  src/gait_generator.cpp)
 target_link_libraries(goliath_motion ${catkin_LIBRARIES})
