@@ -3,12 +3,13 @@
 
 #include "geometry_msgs/Twist.h"
 #include "goliath_msgs/LegsPosition.h"
+#include <body_kinematics.h>
 
 class GaitGenerator
 {
 public:
-  GaitGenerator(goliath_msgs::LegsPosition pos):
-  default_legs_pos_(pos)
+  GaitGenerator(BodyKinematics& body):
+  default_legs_pos_(body.getDefaultLegsPos())
   {
 
   }

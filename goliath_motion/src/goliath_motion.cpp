@@ -10,6 +10,7 @@
 #include <array>
 #include <tf/transform_broadcaster.h>
 #include "body_kinematics.h"
+#include "trajectory_msgs/JointTrajectory.h"
 
 using std::string;
 using std::endl;
@@ -19,7 +20,7 @@ using std::endl;
 class GoliathMotion
 {
 public:
-  GoliathMotion(ros::NodeHandle node) : n_(node)
+  GoliathMotion(ros::NodeHandle node) : nh_(node), private_nh_("~")
   {
     urdf::Model model;
 
@@ -37,13 +38,30 @@ public:
     legs_pos_ = body_.getDefaultLegsPos();
 
     // create public's publisher and subscriber
-    legs_pos_sub_ = n_.subscribe("legs_position", POS_AND_POSE_QUEUE_SZ,
-                                &GoliathMotion::legsPositionCallback, this);
+    legs_pos_sub_ = nh_.subscribe("legs_position", POS_AND_POSE_QUEUE_SZ,
+                                 &GoliathMotion::legsPositionCallback, this);
 
-    body_pose_sub_ = n_.subscribe("body_pose", POS_AND_POSE_QUEUE_SZ,
+    body_pose_sub_ = nh_.subscribe("body_pose", POS_AND_POSE_QUEUE_SZ,
                                   &GoliathMotion::bodyPoseCallback, this);
-    jnt_pub_ =
-        n_.advertise<sensor_msgs::JointState>("joint_states", JNT_QUEUE_SZ);
+    //jnt_pub_ =
+       //nh_.advertise<sensor_msgs::JointState>("joint_states", JNT_QUEUE_SZ);
+
+    jnt_traj_pub_ =
+        private_nh_.advertise<trajectory_msgs::JointTrajectory>("command", JNT_QUEUE_SZ);
+  }
+
+  void spin()
+  {
+    ros::Rate loop_rate(50);
+    while (ros::ok())
+    {
+      //if((legs_pos_.position_of_legs[0].x += 0.0005) > 0.05)
+        //legs_pos_.position_of_legs[0].x = 0;
+
+      //legsPositionCallback(legs_pos_);
+      loop_rate.sleep();
+      ros::spinOnce();
+    }
   }
 
 private:
@@ -70,7 +88,7 @@ private:
     }
 
     publishTransformToGroundFrame(pose);
-    jnt_pub_.publish(jnt_st);
+    //jnt_pub_.publish(jnt_st);
   }
 
   void legsPositionCallback(const goliath_msgs::LegsPosition& pos)
@@ -90,7 +108,31 @@ private:
       return;
     }
     publishTransformToGroundFrame();
-    jnt_pub_.publish(jnt_st);
+    //jnt_pub_.publish(jnt_st);
+
+    static double jnt_test = 0;
+    if((jnt_test += 0.2) > 1.4)
+      jnt_test = -1.4;
+
+    trajectory_msgs::JointTrajectory jnt_traj;
+    trajectory_msgs::JointTrajectoryPoint point;
+
+    jnt_traj.header.stamp = ros::Time::now();
+    //jnt_traj.joint_names.push_back("lf_coxa_joint");
+    //point.positions.push_back(jnt_test);
+    //point.velocities.push_back(0);
+    point.time_from_start = ros::Duration(3.0);
+    for (auto& elem: jnt_st.name)
+    {
+      jnt_traj.joint_names.push_back(elem);
+      point.positions.push_back(0);
+      point.velocities.push_back(0);
+    }
+    point.positions[2] = jnt_test;
+
+    jnt_traj.points.push_back(point);
+
+    jnt_traj_pub_.publish(jnt_traj);
   }
 
   void publishTransformToGroundFrame()
@@ -120,12 +162,15 @@ private:
                                               "center_of_rotation", "ground"));
   }
 
-  ros::NodeHandle n_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle private_nh_;
   ros::Publisher jnt_pub_;
   ros::Subscriber legs_pos_sub_;
   ros::Subscriber body_pose_sub_;
   BodyKinematics body_;
   goliath_msgs::LegsPosition legs_pos_;
+
+  ros::Publisher jnt_traj_pub_;
 
   // use for visualisation
   tf::TransformBroadcaster tf_br_;
@@ -137,12 +182,12 @@ int main(int argc, char** argv)
   // sleep(2);
 
   // Let's start ROS!
-  ros::init(argc, argv, "goliath_kinematics");
-
+  ros::init(argc, argv, "goliath_motion");
   ros::NodeHandle node;
-  GoliathMotion goliath_locomotion(node);
 
-  // wait
-  ros::spin();
+  GoliathMotion goliath_motion(node);
+
+  goliath_motion.spin();
+
   return 0;
 }

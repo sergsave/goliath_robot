@@ -33,9 +33,8 @@ public:
                           const goliath_msgs::LegsPosition&,
                           sensor_msgs::JointState&);
 
-  double getClearance();
   goliath_msgs::LegsPosition getDefaultLegsPos();
-
+  double getClearance();
 private:
   // Enum for leg's side and location
   // left forward, left middle, left rear

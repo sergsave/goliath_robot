@@ -1,0 +1,37 @@
+baud: 115200
+port: /dev/ttyUSB0
+controllers: {
+  goliath_motion: {
+    type: joint_controller,
+    joints: [lf_coxa_joint, lf_femur_joint, lf_tibia_joint,
+             lm_coxa_joint, lm_femur_joint, lm_tibia_joint,
+             lr_coxa_joint, lr_femur_joint, lr_tibia_joint,
+             rf_coxa_joint, rf_femur_joint, rf_tibia_joint,
+             rm_coxa_joint, rm_femur_joint, rm_tibia_joint,
+             rr_coxa_joint, rr_femur_joint, rr_tibia_joint
+             ],
+    publish_joint_states: true,
+    publish_rate: 50
+  }
+}
+
+joints: {
+  lf_coxa_joint: {channel: 0, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  lf_femur_joint: {channel: 1, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  lf_tibia_joint: {channel: 2, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  lm_coxa_joint: {channel: 4, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  lm_femur_joint: {channel: 5, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  lm_tibia_joint: {channel: 6, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  lr_coxa_joint: {channel: 8, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  lr_femur_joint: {channel: 9, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  lr_tibia_joint: {channel: 10, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  rf_coxa_joint: {channel: 16, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  rf_femur_joint: {channel: 17, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: true},
+  rf_tibia_joint: {channel: 18, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: true},
+  rm_coxa_joint: {channel: 20, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  rm_femur_joint: {channel: 21, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: true},
+  rm_tibia_joint: {channel: 22, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: true},
+  rr_coxa_joint: {channel: 24, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: false},
+  rr_femur_joint: {channel: 25, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: true},
+  rr_tibia_joint: {channel: 26, max_angle: 1.57, min_angle: -1.57, offset_angle: 0.0, default_angle: 0.0, initialize: true, invert: true}
+}

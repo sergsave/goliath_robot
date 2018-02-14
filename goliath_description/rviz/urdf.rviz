@@ -203,47 +203,25 @@ Visualization Manager:
           Value: true
         lf_coxa_link:
           Value: true
-        lf_femur_link:
-          Value: true
         lf_tarsus_link:
           Value: true
         lf_tibia_link:
-          Value: true
-        lm_coxa_link:
-          Value: true
-        lm_femur_link:
           Value: true
         lm_tarsus_link:
           Value: true
         lm_tibia_link:
           Value: true
-        lr_coxa_link:
-          Value: true
-        lr_femur_link:
-          Value: true
         lr_tarsus_link:
           Value: true
         lr_tibia_link:
-          Value: true
-        rf_coxa_link:
-          Value: true
-        rf_femur_link:
           Value: true
         rf_tarsus_link:
           Value: true
         rf_tibia_link:
           Value: true
-        rm_coxa_link:
-          Value: true
-        rm_femur_link:
-          Value: true
         rm_tarsus_link:
           Value: true
         rm_tibia_link:
-          Value: true
-        rr_coxa_link:
-          Value: true
-        rr_femur_link:
           Value: true
         rr_tarsus_link:
           Value: true
@@ -259,35 +237,7 @@ Visualization Manager:
           ground:
             {}
           lf_coxa_link:
-            lf_femur_link:
-              lf_tibia_link:
-                lf_tarsus_link:
-                  {}
-          lm_coxa_link:
-            lm_femur_link:
-              lm_tibia_link:
-                lm_tarsus_link:
-                  {}
-          lr_coxa_link:
-            lr_femur_link:
-              lr_tibia_link:
-                lr_tarsus_link:
-                  {}
-          rf_coxa_link:
-            rf_femur_link:
-              rf_tibia_link:
-                rf_tarsus_link:
-                  {}
-          rm_coxa_link:
-            rm_femur_link:
-              rm_tibia_link:
-                rm_tarsus_link:
-                  {}
-          rr_coxa_link:
-            rr_femur_link:
-              rr_tibia_link:
-                rr_tarsus_link:
-                  {}
+            {}
       Update Interval: 0
       Value: true
     - Class: rviz/Marker
@@ -302,7 +252,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: ground
+    Fixed Frame: body_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -323,25 +273,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.823684692
+      Distance: 0.458161622
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.0662859976
-        Y: 0.120214418
-        Z: -0.0471603088
+        X: 0.00475532888
+        Y: 0.036710985
+        Z: 0.00951435231
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.190396965
+      Pitch: 1.17039752
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.82862067
+      Yaw: 0.233622387
     Saved: ~
 Window Geometry:
   Displays:

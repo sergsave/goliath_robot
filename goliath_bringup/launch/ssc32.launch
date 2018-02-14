@@ -1,0 +1,6 @@
+<launch>
+<!-- For use ssc32 you should run : sudo adduser <USERNAME> dialout -->
+  <node pkg="lynxmotion_ssc32" type="ssc32_node" name="ssc32" output="screen">
+    <rosparam file="$(find goliath_bringup)/config/ssc32.yaml" command="load"/>
+  </node>
+</launch>

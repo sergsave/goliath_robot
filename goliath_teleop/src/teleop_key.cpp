@@ -275,7 +275,7 @@ int main(int argc, char* argv[])
   // let's star
   ros::init(argc, argv, "teleop");
   ros::NodeHandle n;
-  ros::Rate loop_rate(50);
+  ros::Rate loop_rate(100);
 
   TeleopKey teleop(n);
 

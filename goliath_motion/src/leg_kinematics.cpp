@@ -69,6 +69,8 @@ LegKinematics::LegKinematics(const string& leg_prefix, const Model& model)
   joints[TIBIA]->parent_to_joint_origin_transform.rotation.getRPY(roll, pitch,
                                                                   yaw);
   segs_[TIBIA].init_angle = pitch;
+
+  def_pos_ = calculateDefaultPos();
 }
 
 LegKinematics::IKResult

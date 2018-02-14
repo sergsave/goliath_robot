@@ -33,8 +33,7 @@ public:
   IKResult calculateJntAngles(const geometry_msgs::Point32& leg_pos,
                               sensor_msgs::JointState& leg_angles);
 
-  // forward kinematics
-  geometry_msgs::Point32 calculateDefaultPos();
+  geometry_msgs::Point32 getDefaultPos() { return def_pos_; }
 
 private:
   // coxa - latin's name of shoulder, femur - part from shouler to elbow,
@@ -68,8 +67,12 @@ private:
   // because there is a additional fixed node - "leg end"
   static const std::array<std::string, NUMBER_OF_SEGMENTS + 1> JNT_BASE_NAMES;
   std::array<Segment, NUMBER_OF_SEGMENTS> segs_;
+  geometry_msgs::Point32 def_pos_;
 
   bool checkAngles(Angles&) const;
+
+  // forward kinematics
+  geometry_msgs::Point32 calculateDefaultPos();
 };
 
 #endif /* LEG_KINEMATICS_H_ */

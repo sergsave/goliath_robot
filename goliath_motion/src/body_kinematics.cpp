@@ -20,7 +20,10 @@ const string BodyKinematics::LEG_ROOT_JNT_BASE_NAME("_coxa_joint");
 
 BodyKinematics::BodyKinematics(const urdf::Model& model)
 {
-  for (std::size_t i = LF; i != legs_origin_.size(); i++)
+  //for clearance checking
+  double prev_clearance = 0;
+
+  for (std::size_t i = LF; i != legs_.size(); i++)
   {
     // get a origins for leg
     urdf::JointConstSharedPtr joint =
@@ -37,7 +40,6 @@ BodyKinematics::BodyKinematics(const urdf::Model& model)
     // init each leg
     try
     {
-
       legs_[i] = LegKinematics(LEG_NAMES[i], model);
     }
     catch (invalid_argument e)
@@ -45,6 +47,14 @@ BodyKinematics::BodyKinematics(const urdf::Model& model)
       // if urdf-model is not valid
       ROS_ERROR_STREAM(e.what());
     }
+
+    //check clearance in model
+    double clearance = legs_[i].getDefaultPos().z;
+
+    if (i != LF && clearance != prev_clearance)
+      throw logic_error("Unequal clearance for all legs");
+
+    prev_clearance = clearance;
   }
 }
 
@@ -53,7 +63,7 @@ goliath_msgs::LegsPosition BodyKinematics::getDefaultLegsPos()
   goliath_msgs::LegsPosition ret;
 
   for (std::size_t i = LF; i != legs_.size(); ++i)
-    ret.position_of_legs[i] = legs_[i].calculateDefaultPos();
+    ret.position_of_legs[i] = legs_[i].getDefaultPos();
 
   return ret;
 }
@@ -124,16 +134,5 @@ void BodyKinematics::calculateJntAngles(
 
 double BodyKinematics::getClearance()
 {
-  double cl, prev_cl;
-
-  for (std::size_t i = LF; i != legs_.size(); ++i)
-  {
-    cl = legs_[LF].calculateDefaultPos().z;
-
-    if (i != LF && cl != prev_cl)
-      throw logic_error("Unequal clearance for all legs");
-
-    prev_cl = cl;
-  }
-  return cl;
+  return legs_[LF].getDefaultPos().z;
 }
