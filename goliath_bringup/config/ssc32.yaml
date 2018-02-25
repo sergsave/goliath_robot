@@ -10,7 +10,7 @@ controllers: {
              rm_coxa_joint, rm_femur_joint, rm_tibia_joint,
              rr_coxa_joint, rr_femur_joint, rr_tibia_joint
              ],
-    publish_joint_states: true,
+    publish_joint_states: false,
     publish_rate: 50
   }
 }

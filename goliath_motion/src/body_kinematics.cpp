@@ -20,7 +20,7 @@ const string BodyKinematics::LEG_ROOT_JNT_BASE_NAME("_coxa_joint");
 
 BodyKinematics::BodyKinematics(const urdf::Model& model)
 {
-  //for clearance checking
+  // for clearance checking
   double prev_clearance = 0;
 
   for (std::size_t i = LF; i != legs_.size(); i++)
@@ -48,7 +48,7 @@ BodyKinematics::BodyKinematics(const urdf::Model& model)
       ROS_ERROR_STREAM(e.what());
     }
 
-    //check clearance in model
+    // check clearance in model
     double clearance = legs_[i].getDefaultPos().z;
 
     if (i != LF && clearance != prev_clearance)
@@ -132,7 +132,4 @@ void BodyKinematics::calculateJntAngles(
   }
 }
 
-double BodyKinematics::getClearance()
-{
-  return legs_[LF].getDefaultPos().z;
-}
+double BodyKinematics::getClearance() { return legs_[LF].getDefaultPos().z; }
