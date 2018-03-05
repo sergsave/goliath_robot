@@ -51,11 +51,14 @@ public:
                                &GoliathMotion::jointStateTimerCallback, this);
     jnt_tim_.stop();
 
+    tf_tim_ = nh_.createTimer(ros::Duration(JNT_ST_TIMER_PERIOD),
+                              &GoliathMotion::tfTimerCallback, this);
+
+    tf_tim_.stop();
+
     jnt_traj_pub_ = private_nh_.advertise<trajectory_msgs::JointTrajectory>(
         "command", JNT_QUEUE_SZ);
   }
-
-  void spin() { ros::spin(); }
 
 private:
   enum QueueSize
@@ -63,6 +66,55 @@ private:
     POS_AND_POSE_QUEUE_SZ = 20,
     JNT_QUEUE_SZ = 20
   };
+
+  void tfTimerCallback(const ros::TimerEvent& tim_ev)
+  {
+    static goliath_msgs::BodyPose curr_pose;
+    static goliath_msgs::BodyPose delta_pose;
+    static std::size_t itter_numb;
+
+    if (tf_itteration_cnt_ == 0)
+    {
+      itter_numb = 1.5 / JNT_ST_TIMER_PERIOD;
+      delta_pose.position.x =
+          (goal_pose_.position.x - curr_pose.position.x) / itter_numb;
+      delta_pose.position.y =
+          (goal_pose_.position.y - curr_pose.position.y) / itter_numb;
+      delta_pose.position.z =
+          (goal_pose_.position.z - curr_pose.position.z) / itter_numb;
+
+      delta_pose.roll = (goal_pose_.roll - curr_pose.roll) / itter_numb;
+      delta_pose.pitch = (goal_pose_.pitch - curr_pose.pitch) / itter_numb;
+      delta_pose.yaw = (goal_pose_.yaw - curr_pose.yaw) / itter_numb;
+    }
+    else if (tf_itteration_cnt_ < itter_numb)
+    {
+      curr_pose.position.x += delta_pose.position.x;
+      curr_pose.position.y += delta_pose.position.y;
+      curr_pose.position.z += delta_pose.position.z;
+
+      curr_pose.roll += delta_pose.roll;
+      curr_pose.pitch += delta_pose.pitch;
+      curr_pose.yaw += delta_pose.yaw;
+
+      publishTransformToGroundFrame(curr_pose);
+    }
+
+    if (tf_itteration_cnt_ == itter_numb)
+    {
+      publishTransformToGroundFrame(curr_pose = goal_pose_);
+      //tf_tim_.stop();
+    }
+    else
+      tf_itteration_cnt_++;
+  }
+
+  void publishTfPose(const goliath_msgs::BodyPose& pose)
+  {
+    goal_pose_ = pose;
+    tf_itteration_cnt_ = 0;
+    tf_tim_.start();
+  }
 
   void publishJointState(const trajectory_msgs::JointTrajectory& traj)
   {
@@ -98,7 +150,6 @@ private:
                                (prev_st.empty() ? 0 : prev_st[j])) /
                               itterations_numb);
         }
-        itteration_cnt_++;
       }
       else if (itteration_cnt_ < itterations_numb)
       {
@@ -109,24 +160,24 @@ private:
           jnt_st.position.push_back((prev_st.empty() ? 0 : prev_st[j]) +
                                     delta_pos[j]);
 
-        // publishTransformToGroundFrame();
         jnt_pub_.publish(jnt_st);
 
         prev_st = jnt_st.position;
-        itteration_cnt_++;
         jnt_st.position.clear();
       }
-      else if (itteration_cnt_ == itterations_numb)
+
+      if (itteration_cnt_ == itterations_numb)
       {
         jnt_st.header.stamp = ros::Time::now();
+        prev_st = jnt_st.position = goal_traj_.points[point_cnt_].positions;
 
-        // publishTransformToGroundFrame();
         jnt_pub_.publish(jnt_st);
 
-        prev_st = jnt_st.position = goal_traj_.points[point_cnt_].positions;
         itteration_cnt_ = 0;
         point_cnt_++;
       }
+      else
+        itteration_cnt_++;
     }
     else
       jnt_tim_.stop();
@@ -155,18 +206,18 @@ private:
     jnt_traj.joint_names = jnt_st.name;
 
     point.positions = jnt_st.position;
-    point.time_from_start = ros::Duration(0.5);
+    point.time_from_start = ros::Duration(1.5);
 
     jnt_traj.points.push_back(point);
     jnt_traj_pub_.publish(jnt_traj);
 
+    publishTfPose(pose);
     publishJointState(jnt_traj);
-    publishTransformToGroundFrame(pose);
+
   }
 
   void legsPositionCallback(const goliath_msgs::LegsPosition& pos)
   {
-    legs_pos_ = pos;
     sensor_msgs::JointState jnt_st;
 
     jnt_st.header.stamp = ros::Time::now();
@@ -187,17 +238,18 @@ private:
     jnt_traj.header.stamp = ros::Time::now();
     jnt_traj.joint_names = jnt_st.name;
 
-    for (auto jnt : jnt_st.position)
-      point.positions.push_back(0.0);
-
     point.positions = jnt_st.position;
-    point.time_from_start = ros::Duration(0.5);
+    point.time_from_start = ros::Duration(1.5);
 
     jnt_traj.points.push_back(point);
 
     jnt_traj_pub_.publish(jnt_traj);
     publishJointState(jnt_traj);
-    publishTransformToGroundFrame();
+
+    goliath_msgs::BodyPose default_pose;
+    publishTfPose(default_pose);
+
+    legs_pos_ = pos;
   }
 
   void publishTransformToGroundFrame()
@@ -228,6 +280,7 @@ private:
   }
 
   static const double JNT_ST_TIMER_PERIOD;
+  static const double TF_TIMER_PERIOD;
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
   ros::Publisher jnt_pub_;
@@ -245,9 +298,14 @@ private:
   ros::Timer jnt_tim_;
   trajectory_msgs::JointTrajectory goal_traj_;
   std::size_t point_cnt_, itteration_cnt_;
+
+  ros::Timer tf_tim_;
+  goliath_msgs::BodyPose goal_pose_;
+  std::size_t tf_itteration_cnt_;
 };
 
 const double GoliathMotion::JNT_ST_TIMER_PERIOD = 0.05;
+const double GoliathMotion::TF_TIMER_PERIOD = 0.05;
 
 int main(int argc, char** argv)
 {
@@ -260,7 +318,7 @@ int main(int argc, char** argv)
 
   GoliathMotion goliath_motion(node);
 
-  goliath_motion.spin();
+  ros::spin();
 
   return 0;
 }

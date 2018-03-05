@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="rvizconfig" default="$(find goliath_description)/rviz/urdf.rviz" />
-  <!-- <remap from="goliath_motion/joint_states" to="joint_states"/> -->
+  <remap from="goliath_motion/joint_states" to="joint_states"/>
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find goliath_description)/urdf/goliath_model.xacro'" />
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
