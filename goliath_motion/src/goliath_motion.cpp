@@ -75,7 +75,7 @@ private:
 
     if (tf_itteration_cnt_ == 0)
     {
-      itter_numb = 1.5 / JNT_ST_TIMER_PERIOD;
+      itter_numb = MOVE_TIME_STEP / JNT_ST_TIMER_PERIOD;
       delta_pose.position.x =
           (goal_pose_.position.x - curr_pose.position.x) / itter_numb;
       delta_pose.position.y =
@@ -103,7 +103,7 @@ private:
     if (tf_itteration_cnt_ == itter_numb)
     {
       publishTransformToGroundFrame(curr_pose = goal_pose_);
-      //tf_tim_.stop();
+      tf_tim_.stop();
     }
     else
       tf_itteration_cnt_++;
@@ -206,7 +206,7 @@ private:
     jnt_traj.joint_names = jnt_st.name;
 
     point.positions = jnt_st.position;
-    point.time_from_start = ros::Duration(1.5);
+    point.time_from_start = ros::Duration(MOVE_TIME_STEP);
 
     jnt_traj.points.push_back(point);
     jnt_traj_pub_.publish(jnt_traj);
@@ -239,7 +239,7 @@ private:
     jnt_traj.joint_names = jnt_st.name;
 
     point.positions = jnt_st.position;
-    point.time_from_start = ros::Duration(1.5);
+    point.time_from_start = ros::Duration(MOVE_TIME_STEP);
 
     jnt_traj.points.push_back(point);
 
@@ -281,6 +281,7 @@ private:
 
   static const double JNT_ST_TIMER_PERIOD;
   static const double TF_TIMER_PERIOD;
+  static const double MOVE_TIME_STEP;
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
   ros::Publisher jnt_pub_;
@@ -306,6 +307,7 @@ private:
 
 const double GoliathMotion::JNT_ST_TIMER_PERIOD = 0.05;
 const double GoliathMotion::TF_TIMER_PERIOD = 0.05;
+const double GoliathMotion::MOVE_TIME_STEP = 0.5;
 
 int main(int argc, char** argv)
 {
