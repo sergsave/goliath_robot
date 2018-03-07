@@ -63,8 +63,8 @@ public:
 private:
   enum QueueSize
   {
-    POS_AND_POSE_QUEUE_SZ = 20,
-    JNT_QUEUE_SZ = 20
+    POS_AND_POSE_QUEUE_SZ = 10,
+    JNT_QUEUE_SZ = 10
   };
 
   void tfTimerCallback(const ros::TimerEvent& tim_ev)
@@ -103,7 +103,7 @@ private:
     if (tf_itteration_cnt_ == itter_numb)
     {
       publishTransformToGroundFrame(curr_pose = goal_pose_);
-      //tf_tim_.stop();
+      // tf_tim_.stop();
     }
     else
       tf_itteration_cnt_++;
@@ -213,18 +213,32 @@ private:
 
     publishTfPose(pose);
     publishJointState(jnt_traj);
-
   }
 
   void legsPositionCallback(const goliath_msgs::LegsPosition& pos)
   {
     sensor_msgs::JointState jnt_st;
+    goliath_msgs::LegsPosition abs_pos;
 
     jnt_st.header.stamp = ros::Time::now();
 
+    for (std::size_t l = 0; l != pos.position_of_legs.size(); ++l)
+    {
+      abs_pos.position_of_legs[l].x =
+          (body_.getDefaultLegsPos()).position_of_legs[l].x +
+          pos.position_of_legs[l].x;
+
+      abs_pos.position_of_legs[l].y =
+          (body_.getDefaultLegsPos()).position_of_legs[l].y +
+          pos.position_of_legs[l].y;
+
+      abs_pos.position_of_legs[l].z =
+          (body_.getDefaultLegsPos()).position_of_legs[l].z +
+          pos.position_of_legs[l].z;
+    }
     try
     {
-      body_.calculateJntAngles(pos, jnt_st);
+      body_.calculateJntAngles(abs_pos, jnt_st);
     }
     catch (std::logic_error e)
     {
@@ -239,7 +253,7 @@ private:
     jnt_traj.joint_names = jnt_st.name;
 
     point.positions = jnt_st.position;
-    point.time_from_start = ros::Duration(1.5);
+    point.time_from_start = ros::Duration(MOVE_TIME_STEP);
 
     jnt_traj.points.push_back(point);
 
@@ -279,8 +293,9 @@ private:
                                               "center_of_rotation", "ground"));
   }
 
-  static const double JNT_ST_TIMER_PERIOD;
-  static const double TF_TIMER_PERIOD;
+  static const double JNT_ST_TIMER_PERIOD, TF_TIMER_PERIOD;
+  static const double MOVE_TIME_STEP;
+
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
   ros::Publisher jnt_pub_;
@@ -304,8 +319,9 @@ private:
   std::size_t tf_itteration_cnt_;
 };
 
-const double GoliathMotion::JNT_ST_TIMER_PERIOD = 0.05;
-const double GoliathMotion::TF_TIMER_PERIOD = 0.05;
+const double GoliathMotion::JNT_ST_TIMER_PERIOD = 0.02;
+const double GoliathMotion::TF_TIMER_PERIOD = 0.02;
+const double GoliathMotion::MOVE_TIME_STEP = 0.3;
 
 int main(int argc, char** argv)
 {

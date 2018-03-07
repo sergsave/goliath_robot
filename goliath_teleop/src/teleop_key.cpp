@@ -6,6 +6,7 @@
 #include "goliath_msgs/BodyPose.h"
 #include "geometry_msgs/Point32.h"
 #include <iomanip>
+#include <cmath>
 using std::endl;
 
 // class contains instruments for remote control Goliath robot.
@@ -38,6 +39,43 @@ public:
   }
 
   ~TeleopKey() { switchConsoleBuffState(true); }
+
+  void spin()
+  {
+    static const int freq = 100;
+    static int counter = 0;
+    ros::Rate loop_rate(freq);
+
+    while (ros::ok())
+    {
+      keyboardPoll();
+      if (++counter > freq / PUBLISH_FREQ)
+      {
+        counter = 0;
+        publishTeleop();
+      }
+      loop_rate.sleep();
+      ros::spinOnce();
+    }
+  }
+
+private:
+  // iteration of Pose, when press the key
+  static const double LEG_XYZ_STEP, BODY_RPY_STEP, BODY_XYZ_STEP;
+  static const int MAX_LEG_NUMB = 6;
+  static const int PUBLISH_FREQ = 2;
+
+  enum QueueSize
+  {
+    LEGS_POS_QUEUE_SZ = 50,
+    BODY_POSE_QUEUE_SZ = 50
+  };
+
+  enum TeleopMode
+  {
+    LEGS_MODE,
+    BODY_MODE
+  };
 
   void keyboardPoll()
   {
@@ -133,8 +171,24 @@ public:
         ready_to_pub = false;
       break;
     case 'o':
-      setLegsPosToDefault();
-      setBodyPoseToDefault();
+      if (mode_ == LEGS_MODE)
+      {
+        const double koef = 0.66;
+
+        if (fabs(legs_pos_.position_of_legs[curr_leg_numb_].x *= koef) <
+            LEG_XYZ_STEP)
+          legs_pos_.position_of_legs[curr_leg_numb_].x = 0;
+
+        if (fabs(legs_pos_.position_of_legs[curr_leg_numb_].y *= koef) <
+            LEG_XYZ_STEP)
+          legs_pos_.position_of_legs[curr_leg_numb_].y = 0;
+
+        if (fabs(legs_pos_.position_of_legs[curr_leg_numb_].z *= koef) <
+            LEG_XYZ_STEP)
+          legs_pos_.position_of_legs[curr_leg_numb_].z = 0;
+      }
+      else
+        setBodyPoseToDefault();
       break;
     default:
       // change leg's number if digit is pressed
@@ -148,49 +202,27 @@ public:
     }
 
     if (ready_to_pub)
-    {
-      std::streamsize prec = std::cout.precision();
-      std::cout << std::setprecision(4);
-      if (mode_ == BODY_MODE)
-      {
-        ROS_INFO_STREAM(endl
-                        << body_pose_);
-        body_pose_pub_.publish(body_pose_);
-      }
-      else if (mode_ == LEGS_MODE)
-      {
-        ROS_INFO_STREAM(endl
-                        << legs_pos_);
-        legs_pos_pub_.publish(legs_pos_);
-      }
-      std::cout << std::setprecision(prec);
-    }
+      ;
   }
 
-private:
-  // iteration of Pose, when press the key
-  static const double LEG_XYZ_STEP, BODY_RPY_STEP, BODY_XYZ_STEP;
-  static const int MAX_LEG_NUMB = 6;
-
-  enum QueueSize
+  void publishTeleop()
   {
-    LEGS_POS_QUEUE_SZ = 50,
-    BODY_POSE_QUEUE_SZ = 50
-  };
-
-  enum TeleopMode
-  {
-    LEGS_MODE,
-    BODY_MODE
-  };
-
-  ros::NodeHandle n_;
-  ros::Publisher body_pose_pub_;
-  ros::Publisher legs_pos_pub_;
-  goliath_msgs::LegsPosition legs_pos_;
-  goliath_msgs::BodyPose body_pose_;
-  TeleopMode mode_;
-  std::size_t curr_leg_numb_;
+    std::streamsize prec = std::cout.precision();
+    std::cout << std::setprecision(4);
+    if (mode_ == BODY_MODE)
+    {
+      ROS_INFO_STREAM(endl
+                      << body_pose_);
+      body_pose_pub_.publish(body_pose_);
+    }
+    else if (mode_ == LEGS_MODE)
+    {
+      ROS_INFO_STREAM(endl
+                      << legs_pos_);
+      legs_pos_pub_.publish(legs_pos_);
+    }
+    std::cout << std::setprecision(prec);
+  }
 
   // disable or enable buffering input
   // without this method you have to press "enter" key after each button
@@ -221,6 +253,7 @@ private:
       // restore the old settings
       tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
   }
+
   void setBodyPoseToDefault()
   {
     // init body position
@@ -230,43 +263,20 @@ private:
 
   void setLegsPosToDefault()
   {
-    // init leg position
-    double x, y, z;
-
-    z = -0.058;
-    for (std::size_t i = 0; i != legs_pos_.position_of_legs.size(); ++i)
-    {
-      switch (i)
-      {
-      case 0:
-        x = 0.044, y = 0.065;
-        break;
-      case 1:
-        x = 0, y = 0.065;
-        break;
-      case 2:
-        x = -0.044, y = 0.065;
-        break;
-      case 3:
-        x = 0.044, y = -0.065;
-        break;
-      case 4:
-        x = 0, y = -0.065;
-        break;
-      case 5:
-        x = -0.044, y = -0.065;
-        break;
-      default:
-        break;
-      }
-      legs_pos_.position_of_legs[i].x = x;
-      legs_pos_.position_of_legs[i].y = y;
-      legs_pos_.position_of_legs[i].z = z;
-    }
+    for (auto& elem : legs_pos_.position_of_legs)
+      elem.x = elem.y = elem.z = 0;
   }
+
+  ros::NodeHandle n_;
+  ros::Publisher body_pose_pub_;
+  ros::Publisher legs_pos_pub_;
+  goliath_msgs::LegsPosition legs_pos_;
+  goliath_msgs::BodyPose body_pose_;
+  TeleopMode mode_;
+  std::size_t curr_leg_numb_;
 };
 
-const double TeleopKey::LEG_XYZ_STEP = 0.01;
+const double TeleopKey::LEG_XYZ_STEP = 0.004;
 const double TeleopKey::BODY_RPY_STEP = 3.1416 / 100.0;
 const double TeleopKey::BODY_XYZ_STEP = 0.01;
 
@@ -275,16 +285,9 @@ int main(int argc, char* argv[])
   // let's star
   ros::init(argc, argv, "teleop");
   ros::NodeHandle n;
-  ros::Rate loop_rate(100);
 
   TeleopKey teleop(n);
-
-  while (ros::ok())
-  {
-    teleop.keyboardPoll();
-    loop_rate.sleep();
-    ros::spinOnce();
-  }
+  teleop.spin();
 
   return 0;
 }
