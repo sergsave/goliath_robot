@@ -124,7 +124,6 @@ LegKinematics::calculateJntAngles(const Point32& pos, JointState& jnt_angles)
   // protection from robot's legs crash
   if (checkAngles(temp))
   {
-
     jnt_angles.position.insert(jnt_angles.position.end(), temp.begin(),
                                temp.end());
     for (auto& elem : segs_)

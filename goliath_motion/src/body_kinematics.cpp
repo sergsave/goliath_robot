@@ -72,6 +72,7 @@ goliath_msgs::LegsPosition BodyKinematics::getDefaultLegsPos()
 void BodyKinematics::calculateJntAngles(
     const goliath_msgs::LegsPosition& legs_pos, sensor_msgs::JointState& jnt)
 {
+#warning "simplify method!"
   // just call IK method for each leg
   goliath_msgs::BodyPose def_pose;
   calculateJntAngles(def_pose, legs_pos, jnt);
@@ -133,3 +134,4 @@ void BodyKinematics::calculateJntAngles(
 }
 
 double BodyKinematics::getClearance() { return legs_[LF].getDefaultPos().z; }
+
