@@ -49,7 +49,8 @@ public:
 
     jnt_tim_ = nh_.createTimer(ros::Duration(JNT_ST_TIMER_PERIOD),
                                &GoliathMotion::jointStateTimerCallback, this);
-    jnt_tim_.stop();
+    jnt_tim_.start();
+    point_cnt_ = itteration_cnt_ = 0;
 
     tf_tim_ = nh_.createTimer(ros::Duration(JNT_ST_TIMER_PERIOD),
                               &GoliathMotion::tfTimerCallback, this);
@@ -75,7 +76,7 @@ private:
 
     if (tf_itteration_cnt_ == 0)
     {
-      itter_numb = 1.5 / JNT_ST_TIMER_PERIOD;
+      itter_numb = MOVE_TIME_STEP / JNT_ST_TIMER_PERIOD;
       delta_pose.position.x =
           (goal_pose_.position.x - curr_pose.position.x) / itter_numb;
       delta_pose.position.y =
@@ -116,11 +117,11 @@ private:
     tf_tim_.start();
   }
 
-  void publishJointState(const trajectory_msgs::JointTrajectory& traj)
+  void publishJointState(const trajectory_msgs::JointTrajectoryPoint& point)
   {
-    point_cnt_ = itteration_cnt_ = 0;
-    goal_traj_ = traj;
-    jnt_tim_.start();
+    //point_cnt_ = itteration_cnt_ = 0;
+    //goal_traj_.points.push_back(point);
+    //jnt_tim_.start();
   }
 
   void jointStateTimerCallback(const ros::TimerEvent& tim_ev)
@@ -180,7 +181,11 @@ private:
         itteration_cnt_++;
     }
     else
-      jnt_tim_.stop();
+    {
+      goal_traj_.points.clear();
+      point_cnt_ = itteration_cnt_ = 0;
+      //jnt_tim_.stop();
+    }
   }
 
   void bodyPoseCallback(const goliath_msgs::BodyPose& pose)
@@ -206,13 +211,15 @@ private:
     jnt_traj.joint_names = jnt_st.name;
 
     point.positions = jnt_st.position;
-    point.time_from_start = ros::Duration(1.5);
+    point.time_from_start = ros::Duration(MOVE_TIME_STEP);
 
     jnt_traj.points.push_back(point);
     jnt_traj_pub_.publish(jnt_traj);
 
+    goal_traj_.joint_names = jnt_traj.joint_names;
+    goal_traj_.points.push_back(point);
+
     publishTfPose(pose);
-    publishJointState(jnt_traj);
   }
 
   void legsPositionCallback(const goliath_msgs::LegsPosition& pos)
@@ -258,12 +265,16 @@ private:
     jnt_traj.points.push_back(point);
 
     jnt_traj_pub_.publish(jnt_traj);
-    publishJointState(jnt_traj);
+
+    goal_traj_.joint_names = jnt_traj.joint_names;
+    goal_traj_.points.push_back(point);
+
+    //publishJointState(point);
 
     goliath_msgs::BodyPose default_pose;
     publishTfPose(default_pose);
 
-    legs_pos_ = pos;
+    legs_pos_ = abs_pos;
   }
 
   void publishTransformToGroundFrame()
@@ -321,7 +332,7 @@ private:
 
 const double GoliathMotion::JNT_ST_TIMER_PERIOD = 0.02;
 const double GoliathMotion::TF_TIMER_PERIOD = 0.02;
-const double GoliathMotion::MOVE_TIME_STEP = 0.3;
+const double GoliathMotion::MOVE_TIME_STEP = 0.25;
 
 int main(int argc, char** argv)
 {

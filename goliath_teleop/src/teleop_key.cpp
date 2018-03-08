@@ -14,7 +14,7 @@ using std::endl;
 class TeleopKey
 {
 public:
-  TeleopKey(ros::NodeHandle node) : n_(node), mode_(LEGS_MODE)
+  TeleopKey(ros::NodeHandle node) : n_(node), mode_(LEGS_MODE), ready_to_pub_(false)
   {
     // init publishers
     legs_pos_pub_ = n_.advertise<goliath_msgs::LegsPosition>("legs_position",
@@ -52,7 +52,11 @@ public:
       if (++counter > freq / PUBLISH_FREQ)
       {
         counter = 0;
-        publishTeleop();
+        if (ready_to_pub_)
+        {
+          publishTeleop();
+          ready_to_pub_ = false;
+        }
       }
       loop_rate.sleep();
       ros::spinOnce();
@@ -63,7 +67,7 @@ private:
   // iteration of Pose, when press the key
   static const double LEG_XYZ_STEP, BODY_RPY_STEP, BODY_XYZ_STEP;
   static const int MAX_LEG_NUMB = 6;
-  static const int PUBLISH_FREQ = 2;
+  static const int PUBLISH_FREQ = 4;
 
   enum QueueSize
   {
@@ -79,7 +83,7 @@ private:
 
   void keyboardPoll()
   {
-    bool ready_to_pub = true;
+    bool is_changed = true;
     int c;
 
     // use low-level function getchar (cin doesn't work with unbuffered input)
@@ -138,37 +142,37 @@ private:
       if (mode_ == BODY_MODE)
         body_pose_.roll -= BODY_RPY_STEP;
       else
-        ready_to_pub = false;
+        is_changed = false;
       break;
     case 'd':
       if (mode_ == BODY_MODE)
         body_pose_.roll += BODY_RPY_STEP;
       else
-        ready_to_pub = false;
+        is_changed = false;
       break;
     case 's':
       if (mode_ == BODY_MODE)
         body_pose_.pitch -= BODY_RPY_STEP;
       else
-        ready_to_pub = false;
+        is_changed = false;
       break;
     case 'w':
       if (mode_ == BODY_MODE)
         body_pose_.pitch += BODY_RPY_STEP;
       else
-        ready_to_pub = false;
+        is_changed = false;
       break;
     case 'r':
       if (mode_ == BODY_MODE)
         body_pose_.yaw -= BODY_RPY_STEP;
       else
-        ready_to_pub = false;
+        is_changed = false;
       break;
     case 'f':
       if (mode_ == BODY_MODE)
         body_pose_.yaw += BODY_RPY_STEP;
       else
-        ready_to_pub = false;
+        is_changed = false;
       break;
     case 'o':
       if (mode_ == LEGS_MODE)
@@ -197,12 +201,12 @@ private:
         curr_leg_numb_ = c - '0';
       }
       else
-        ready_to_pub = false;
+        is_changed = false;
       break;
     }
 
-    if (ready_to_pub)
-      ;
+    if (is_changed)
+      ready_to_pub_ = true;
   }
 
   void publishTeleop()
@@ -274,11 +278,12 @@ private:
   goliath_msgs::BodyPose body_pose_;
   TeleopMode mode_;
   std::size_t curr_leg_numb_;
+  bool ready_to_pub_;
 };
 
-const double TeleopKey::LEG_XYZ_STEP = 0.004;
-const double TeleopKey::BODY_RPY_STEP = 3.1416 / 100.0;
-const double TeleopKey::BODY_XYZ_STEP = 0.01;
+const double TeleopKey::LEG_XYZ_STEP = 0.003;
+const double TeleopKey::BODY_RPY_STEP = 3.1416 / 300.0;
+const double TeleopKey::BODY_XYZ_STEP = 0.003;
 
 int main(int argc, char* argv[])
 {
