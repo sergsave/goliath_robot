@@ -134,4 +134,3 @@ void BodyKinematics::calculateJntAngles(
 }
 
 double BodyKinematics::getClearance() { return legs_[LF].getDefaultPos().z; }
-
