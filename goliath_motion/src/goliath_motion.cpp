@@ -45,71 +45,15 @@ public:
                                    &GoliathMotion::bodyPoseCallback, this);
 
     jnt_traj_pub_ = private_nh_.advertise<trajectory_msgs::JointTrajectory>(
-        "command", JNT_QUEUE_SZ);
-
+        "command", JNT_TRAJ_QUEUE_SZ);
 
     tf_tim_ = nh_.createTimer(ros::Duration(TF_TIMER_PERIOD),
                               &GoliathMotion::tfTimerCallback, this);
     tf_tim_.stop();
-
   }
 
 private:
-  enum QueueSize
-  {
-    POS_AND_POSE_QUEUE_SZ = 10,
-    JNT_QUEUE_SZ = 10
-  };
-
-  void tfTimerCallback(const ros::TimerEvent& tim_ev)
-  {
-    static goliath_msgs::BodyPose curr_pose;
-    static goliath_msgs::BodyPose delta_pose;
-    static std::size_t itter_numb;
-
-    if (tf_itteration_cnt_ == 0)
-    {
-      itter_numb = MOVE_TIME_STEP / TF_TIMER_PERIOD;
-      delta_pose.position.x =
-          (goal_pose_.position.x - curr_pose.position.x) / itter_numb;
-      delta_pose.position.y =
-          (goal_pose_.position.y - curr_pose.position.y) / itter_numb;
-      delta_pose.position.z =
-          (goal_pose_.position.z - curr_pose.position.z) / itter_numb;
-
-      delta_pose.roll = (goal_pose_.roll - curr_pose.roll) / itter_numb;
-      delta_pose.pitch = (goal_pose_.pitch - curr_pose.pitch) / itter_numb;
-      delta_pose.yaw = (goal_pose_.yaw - curr_pose.yaw) / itter_numb;
-    }
-    else if (tf_itteration_cnt_ < itter_numb)
-    {
-      curr_pose.position.x += delta_pose.position.x;
-      curr_pose.position.y += delta_pose.position.y;
-      curr_pose.position.z += delta_pose.position.z;
-
-      curr_pose.roll += delta_pose.roll;
-      curr_pose.pitch += delta_pose.pitch;
-      curr_pose.yaw += delta_pose.yaw;
-
-      publishTransformToGroundFrame(curr_pose);
-    }
-
-    if (tf_itteration_cnt_ == itter_numb)
-    {
-      publishTransformToGroundFrame(curr_pose = goal_pose_);
-      tf_tim_.stop();
-    }
-    else
-      tf_itteration_cnt_++;
-  }
-
-  void publishTfPose(const goliath_msgs::BodyPose& pose)
-  {
-    goal_pose_ = pose;
-    tf_itteration_cnt_ = 0;
-    tf_tim_.start();
-  }
-
+  
   void bodyPoseCallback(const goliath_msgs::BodyPose& pose)
   {
     sensor_msgs::JointState jnt_st;
@@ -138,7 +82,7 @@ private:
     jnt_traj.points.push_back(point);
     jnt_traj_pub_.publish(jnt_traj);
 
-    publishTfPose(pose);
+    startPublishTfPose(pose);
   }
 
   void legsPositionCallback(const goliath_msgs::LegsPosition& pos)
@@ -186,7 +130,7 @@ private:
     jnt_traj_pub_.publish(jnt_traj);
 
     goliath_msgs::BodyPose default_pose;
-    publishTfPose(default_pose);
+    startPublishTfPose(default_pose);
 
     legs_pos_ = abs_pos;
   }
@@ -209,22 +153,71 @@ private:
                                               "center_of_rotation", "ground"));
   }
 
+  void tfTimerCallback(const ros::TimerEvent& tim_ev)
+  {
+    static goliath_msgs::BodyPose curr_pose;
+    static goliath_msgs::BodyPose delta_pose;
+    static std::size_t itter_numb;
+
+    if (tf_itteration_cnt_ == 0)
+    {
+      itter_numb = MOVE_TIME_STEP / TF_TIMER_PERIOD;
+      delta_pose.position.x =
+          (goal_pose_.position.x - curr_pose.position.x) / itter_numb;
+      delta_pose.position.y =
+          (goal_pose_.position.y - curr_pose.position.y) / itter_numb;
+      delta_pose.position.z =
+          (goal_pose_.position.z - curr_pose.position.z) / itter_numb;
+
+      delta_pose.roll = (goal_pose_.roll - curr_pose.roll) / itter_numb;
+      delta_pose.pitch = (goal_pose_.pitch - curr_pose.pitch) / itter_numb;
+      delta_pose.yaw = (goal_pose_.yaw - curr_pose.yaw) / itter_numb;
+    }
+    else if (tf_itteration_cnt_ < itter_numb)
+    {
+      curr_pose.position.x += delta_pose.position.x;
+      curr_pose.position.y += delta_pose.position.y;
+      curr_pose.position.z += delta_pose.position.z;
+
+      curr_pose.roll += delta_pose.roll;
+      curr_pose.pitch += delta_pose.pitch;
+      curr_pose.yaw += delta_pose.yaw;
+
+      publishTransformToGroundFrame(curr_pose);
+    }
+
+    if (tf_itteration_cnt_ == itter_numb)
+    {
+      publishTransformToGroundFrame(curr_pose = goal_pose_);
+      tf_tim_.stop();
+    }
+    else
+      tf_itteration_cnt_++;
+  }
+
+  void startPublishTfPose(const goliath_msgs::BodyPose& pose)
+  {
+    goal_pose_ = pose;
+    tf_itteration_cnt_ = 0;
+    tf_tim_.start();
+  }
+
+  static const int POS_AND_POSE_QUEUE_SZ = 10;
+  static const int JNT_TRAJ_QUEUE_SZ = 10;
   static const double TF_TIMER_PERIOD;
   static const double MOVE_TIME_STEP;
 
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
-  ros::Publisher jnt_pub_;
   ros::Subscriber legs_pos_sub_;
   ros::Subscriber body_pose_sub_;
+  ros::Publisher jnt_traj_pub_;
   BodyKinematics body_;
 
   goliath_msgs::LegsPosition legs_pos_;
-
-  ros::Publisher jnt_traj_pub_;
+  goliath_msgs::BodyPose goal_pose_;
 
   // use for visualisation
-  goliath_msgs::BodyPose goal_pose_;
   tf::TransformBroadcaster tf_br_;
   ros::Timer tf_tim_;
   std::size_t tf_itteration_cnt_;

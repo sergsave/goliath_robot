@@ -64,13 +64,13 @@ private:
   }
 
   static const double RATE_VAL;
-  static const std::size_t TRAJ_QUEUE_SIZE = 100;
+  static const std::size_t TRAJ_QUEUE_SIZE = 20;
   ros::NodeHandle nh_;
   ros::Subscriber jnt_traj_sub_;
   ros::Publisher jnt_st_pub_;
 };
 
-const double ServoEmulator::RATE_VAL = 20;
+const double ServoEmulator::RATE_VAL = 50;
 
 int main(int argc, char** argv)
 {
