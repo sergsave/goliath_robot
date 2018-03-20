@@ -9,8 +9,7 @@
 #define LEG_KINEMATICS_H_
 
 #include "urdf/model.h"
-#include "geometry_msgs/Point32.h"
-#include "sensor_msgs/JointState.h"
+#include "trajectory_msgs/JointTrajectoryPoint.h"
 #include <string>
 #include <array>
 
@@ -28,12 +27,17 @@ public:
     ERROR
   };
 
-  // IK - inverse kinematics. Determining a joint's angles from
-  // position of leg end
-  IKResult calculateJntAngles(const geometry_msgs::Point32& leg_pos,
-                              sensor_msgs::JointState& leg_angles);
+  typedef urdf::Vector3 LegPos;
 
-  geometry_msgs::Point32 getDefaultPos() { return def_pos_; }
+  // IK - inverse kinematics. Determining a joint's angles from
+  // position of leg end. It pushes 3 angles (coxa, femur, tibia)
+  // in leg_angles.positions[] vector.
+  IKResult
+  calculateJntAngles(const LegPos& leg_pos,
+                     trajectory_msgs::JointTrajectoryPoint& leg_angles);
+
+  LegPos getDefaultPos() { return def_pos_; }
+  void getJntNames(std::vector<std::string>& names);
 
 private:
   // coxa - latin's name of shoulder, femur - part from shouler to elbow,
@@ -67,12 +71,12 @@ private:
   // because there is a additional fixed node - "leg end"
   static const std::array<std::string, NUMBER_OF_SEGMENTS + 1> JNT_BASE_NAMES;
   std::array<Segment, NUMBER_OF_SEGMENTS> segs_;
-  geometry_msgs::Point32 def_pos_;
+  LegPos def_pos_;
 
   bool checkAngles(Angles&) const;
 
   // forward kinematics
-  geometry_msgs::Point32 calculateDefaultPos();
+  LegPos calculateDefaultPos();
 };
 
 #endif /* LEG_KINEMATICS_H_ */

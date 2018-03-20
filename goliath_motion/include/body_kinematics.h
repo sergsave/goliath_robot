@@ -11,9 +11,6 @@
 #include <string>
 #include <array>
 #include "leg_kinematics.h"
-#include "goliath_msgs/BodyPose.h"
-#include "goliath_msgs/LegsPosition.h"
-#include "sensor_msgs/JointState.h"
 
 // class describes the insect-like six leg's robot
 // class have instruments for calculating inverse and forward
@@ -24,18 +21,6 @@ public:
   BodyKinematics() {}
   BodyKinematics(const urdf::Model&);
 
-  // methods for calculating
-  void calculateJntAngles(const goliath_msgs::LegsPosition&,
-                          sensor_msgs::JointState&);
-  void calculateJntAngles(const goliath_msgs::BodyPose&,
-                          sensor_msgs::JointState&);
-  void calculateJntAngles(const goliath_msgs::BodyPose&,
-                          const goliath_msgs::LegsPosition&,
-                          sensor_msgs::JointState&);
-
-  goliath_msgs::LegsPosition getDefaultLegsPos();
-  double getClearance();
-private:
   // Enum for leg's side and location
   // left forward, left middle, left rear
   // right forward, right middle, right rear
@@ -50,9 +35,33 @@ private:
     NUMBER_OF_LEGS
   };
 
+  typedef std::array<LegKinematics::LegPos, NUMBER_OF_LEGS> LegsPosition;
+  typedef urdf::Pose BodyPose;
+
+  // methods for calculating
+  void calculateJntAngles(const LegsPosition&,
+                          trajectory_msgs::JointTrajectoryPoint&);
+  void calculateJntAngles(const BodyPose&,
+                          trajectory_msgs::JointTrajectoryPoint&);
+  void calculateJntAngles(const BodyPose&, const LegsPosition&,
+                          trajectory_msgs::JointTrajectoryPoint&);
+
+  void getLegsJntName(std::vector<std::string>&);
+
+  LegsPosition getDefaultLegsPos();
+  double getClearance();
+
+private:
+  // urdf::Vector3 doesnt have "-" operator
+  urdf::Vector3 invVec(urdf::Vector3 vec)
+  {
+    return urdf::Vector3(-vec.x, -vec.y, -vec.z);
+  }
+
   static const std::array<std::string, NUMBER_OF_LEGS> LEG_NAMES;
   static const std::string LEG_ROOT_JNT_BASE_NAME;
   std::array<LegKinematics, NUMBER_OF_LEGS> legs_;
-  std::array<geometry_msgs::Point32, NUMBER_OF_LEGS> legs_origin_;
+  LegsPosition legs_origin_;
+
 };
 #endif /* BODY_KINEMATICS_H */

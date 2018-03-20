@@ -14,8 +14,6 @@ using urdf::JointConstSharedPtr;
 using std::string;
 using std::array;
 using std::invalid_argument;
-using sensor_msgs::JointState;
-using geometry_msgs::Point32;
 
 const array<string, LegKinematics::NUMBER_OF_SEGMENTS + 1>
     LegKinematics::JNT_BASE_NAMES = {"coxa_joint", "femur_joint", "tibia_joint",
@@ -58,7 +56,7 @@ LegKinematics::LegKinematics(const string& leg_prefix, const Model& model)
   segs_[TIBIA].length = fabs(
       joints[NUMBER_OF_SEGMENTS]->parent_to_joint_origin_transform.position.x);
 
-  //set default RPY angles
+  // set default RPY angles
   double roll, pitch, yaw;
   joints[COXA]->parent_to_joint_origin_transform.rotation.getRPY(roll, pitch,
                                                                  yaw);
@@ -73,8 +71,8 @@ LegKinematics::LegKinematics(const string& leg_prefix, const Model& model)
   def_pos_ = calculateDefaultPos();
 }
 
-LegKinematics::IKResult
-LegKinematics::calculateJntAngles(const Point32& pos, JointState& jnt_angles)
+LegKinematics::IKResult LegKinematics::calculateJntAngles(
+    const LegPos& pos, trajectory_msgs::JointTrajectoryPoint& angles)
 {
   Angles temp;
   temp[COXA] = atan2(pos.y, pos.x) - segs_[COXA].init_angle;
@@ -124,11 +122,8 @@ LegKinematics::calculateJntAngles(const Point32& pos, JointState& jnt_angles)
   // protection from robot's legs crash
   if (checkAngles(temp))
   {
-    jnt_angles.position.insert(jnt_angles.position.end(), temp.begin(),
+    angles.positions.insert(angles.positions.end(), temp.begin(),
                                temp.end());
-    for (auto& elem : segs_)
-      jnt_angles.name.push_back(elem.name);
-
     return OK;
   }
   else
@@ -143,9 +138,9 @@ bool LegKinematics::checkAngles(Angles& angs) const
   return true;
 }
 
-Point32 LegKinematics::calculateDefaultPos()
+LegKinematics::LegPos LegKinematics::calculateDefaultPos()
 {
-  Point32 ret;
+  LegPos ret;
 
   // projection of segments to xy axis (see comments in calculateJntAngles
   // method)
@@ -166,4 +161,10 @@ Point32 LegKinematics::calculateDefaultPos()
   ret.y = xy * sin(segs_[COXA].init_angle);
 
   return ret;
+}
+
+void LegKinematics::getJntNames(std::vector<string>& names)
+{
+  for(auto& s : segs_)
+    names.push_back(s.name);
 }
