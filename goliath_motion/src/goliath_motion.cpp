@@ -9,10 +9,11 @@
 #include <string>
 #include <array>
 #include <tf/transform_broadcaster.h>
-#include "body_kinematics.h"
 #include "trajectory_msgs/JointTrajectory.h"
 #include "geometry_msgs/Twist.h"
 #include "goliath_msgs/LegsVel.h"
+#include "body_kinematics.h"
+#include "gait_generator.h"
 
 using std::string;
 using std::endl;
@@ -41,6 +42,7 @@ public:
 
     body_ = BodyKinematics(model);
     curr_legs_pos_ = body_.getDefaultLegsPos();
+    gait_ = GaitGenerator(body_);
 
     // create public's publisher and subscriber
 
@@ -59,36 +61,41 @@ public:
 
   void spin(void)
   {
-
     while (ros::ok())
     {
+      BodyKinematics::LegsPosition new_legs_pos = curr_legs_pos_;
+      BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
+      urdf::Vector3 new_odom_dist = curr_odom_dist_;
 
-      if (ros::Time::now() - last_update_time_ >
-          ros::Duration(MOVE_TIME_STEP))
+      shiftLegsPos(new_legs_pos, MOVE_TIME_STEP);
+      shiftBodyPose(new_body_pose, MOVE_TIME_STEP);
+      shiftOdomDist(new_odom_dist, MOVE_TIME_STEP);
+
+      // geometry_msgs::Twist test;
+      // test.linear.x = 0.02;
+      gait_.accretion(gait_velocity_, new_legs_pos, MOVE_TIME_STEP);
+
+      trajectory_msgs::JointTrajectory traj;
+
+      if (createJntTraj(new_legs_pos, new_body_pose, traj))
       {
-        BodyKinematics::LegsPosition new_legs_pos = curr_legs_pos_;
-        BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
-        trajectory_msgs::JointTrajectory traj;
+        jnt_traj_pub_.publish(traj);
+        waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_,
+                         curr_odom_dist_);
 
-        shiftLegsPos(new_legs_pos);
-        shiftBodyPose(new_body_pose);
-
-        if (createJntTraj(new_legs_pos, new_body_pose, traj))
-        {
-          publishTransformToGroundFrame(curr_body_pose_);
-          jnt_traj_pub_.publish(traj);
-          curr_body_pose_ = new_body_pose;
-          curr_legs_pos_ = new_legs_pos;
-        }
-
-        last_update_time_ = ros::Time::now();
+        curr_legs_pos_ = new_legs_pos;
+        curr_body_pose_ = new_body_pose;
+        curr_odom_dist_ = new_odom_dist;
       }
+      else
+        ros::Duration(MOVE_TIME_STEP).sleep();
 
       if (ros::Time::now() - last_gait_or_legs_command_time_ >
           ros::Duration(MOVE_TIME))
       {
         // set vel to zero
         legs_velocity_ = goliath_msgs::LegsVel();
+        gait_velocity_ = geometry_msgs::Twist();
       }
 
       if (ros::Time::now() - last_body_command_time_ > ros::Duration(MOVE_TIME))
@@ -120,31 +127,38 @@ private:
     last_gait_or_legs_command_time_ = ros::Time::now();
   }
 
-  void shiftLegsPos(BodyKinematics::LegsPosition& new_lp)
+  void shiftLegsPos(BodyKinematics::LegsPosition& new_lp, double time)
   {
     for (std::size_t l = 0; l != new_lp.size(); ++l)
     {
-      LegKinematics::LegPos iter(
-          MOVE_TIME_STEP * legs_velocity_.velocities[l].x,
-          MOVE_TIME_STEP * legs_velocity_.velocities[l].y,
-          MOVE_TIME_STEP * legs_velocity_.velocities[l].z);
+      LegKinematics::LegPos iter(time * legs_velocity_.velocities[l].x,
+                                 time * legs_velocity_.velocities[l].y,
+                                 time * legs_velocity_.velocities[l].z);
       new_lp[l] = new_lp[l] + iter;
     }
   }
 
-  void shiftBodyPose(BodyKinematics::BodyPose& new_bp)
+  void shiftBodyPose(BodyKinematics::BodyPose& new_bp, double time)
   {
     double roll, pitch, yaw;
     new_bp.rotation.getRPY(roll, pitch, yaw);
-    new_bp.rotation.setFromRPY(roll + MOVE_TIME_STEP * body_velocity_.angular.x,
-                               pitch +
-                                   MOVE_TIME_STEP * body_velocity_.angular.y,
-                               yaw + MOVE_TIME_STEP * body_velocity_.angular.z);
+    new_bp.rotation.setFromRPY(roll + time * body_velocity_.angular.x,
+                               pitch + time * body_velocity_.angular.y,
+                               yaw + time * body_velocity_.angular.z);
 
-    urdf::Vector3 iter(MOVE_TIME_STEP * body_velocity_.linear.x,
-                       MOVE_TIME_STEP * body_velocity_.linear.y,
-                       MOVE_TIME_STEP * body_velocity_.linear.z);
+    urdf::Vector3 iter(time * body_velocity_.linear.x,
+                       time * body_velocity_.linear.y,
+                       time * body_velocity_.linear.z);
     new_bp.position = new_bp.position + iter;
+  }
+
+  void shiftOdomDist(urdf::Vector3& new_dist, double time)
+  {
+    urdf::Vector3 iter(time * gait_velocity_.linear.x,
+                       time * gait_velocity_.linear.y,
+                       time * gait_velocity_.linear.z);
+
+    new_dist = new_dist + iter;
   }
 
   bool createJntTraj(const BodyKinematics::LegsPosition& lp,
@@ -172,9 +186,23 @@ private:
     return true;
   }
 
-  void publishTransformToGroundFrame(const BodyKinematics::BodyPose& pose)
+  void waitAndPublishTf(double time, BodyKinematics::BodyPose pose,
+                        urdf::Vector3 od_dist)
   {
-#warning "add smooth transform!"
+    const double tf_pub_period = time / TF_NUMBERS_PER_STEP;
+
+    for (std::size_t i = 0; i != TF_NUMBERS_PER_STEP; ++i)
+    {
+      publishTransformToBase(pose);
+      publishTransformToOdom(od_dist);
+      shiftBodyPose(pose, tf_pub_period);
+      shiftOdomDist(od_dist, tf_pub_period);
+      ros::Duration(tf_pub_period).sleep();
+    }
+  }
+
+  void publishTransformToBase(const BodyKinematics::BodyPose& pose)
+  {
     tf::Transform transform;
     transform.setOrigin(tf::Vector3(0, 0, 0));
 
@@ -192,17 +220,28 @@ private:
     transform.setOrigin(tf::Vector3(-pose.position.x, -pose.position.y,
                                     body_.getClearance() - pose.position.z));
     tf_br_.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
-                                              "center_of_rotation", "ground"));
+                                              "center_of_rotation", "base"));
+  }
+
+  void publishTransformToOdom(const urdf::Vector3& dist)
+  {
+    tf::Transform transform;
+    transform.setOrigin(tf::Vector3(-dist.x, -dist.y, 0));
+
+    tf_br_.sendTransform(
+        tf::StampedTransform(transform, ros::Time::now(), "base", "odom"));
   }
 
   static const int VEL_QUEUE_SZ = 10;
   static const int JNT_TRAJ_QUEUE_SZ = 10;
+  static const int TF_NUMBERS_PER_STEP = 5;
   static const double MOVE_TIME_STEP, MOVE_TIME;
 
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
 
   BodyKinematics body_;
+  GaitGenerator gait_;
 
   ros::Subscriber gait_vel_sub_;
   ros::Subscriber body_vel_sub_;
@@ -215,10 +254,10 @@ private:
 
   ros::Time last_gait_or_legs_command_time_;
   ros::Time last_body_command_time_;
-  ros::Time last_update_time_;
 
   BodyKinematics::LegsPosition curr_legs_pos_;
   BodyKinematics::BodyPose curr_body_pose_;
+  urdf::Vector3 curr_odom_dist_;
 
   // use for visualisation
   tf::TransformBroadcaster tf_br_;
