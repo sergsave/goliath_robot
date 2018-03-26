@@ -12,6 +12,7 @@
 #include "trajectory_msgs/JointTrajectory.h"
 #include "geometry_msgs/Twist.h"
 #include "goliath_msgs/LegsVel.h"
+#include "goliath_msgs/MotionCmd.h"
 #include "body_kinematics.h"
 #include "gait_generator.h"
 
@@ -46,14 +47,17 @@ public:
 
     // create public's publisher and subscriber
 
-    gait_vel_sub_ = nh_.subscribe("gait_cmd_vel", VEL_QUEUE_SZ,
+    gait_vel_sub_ = nh_.subscribe("gait_cmd_vel", SUB_QUEUE_SZ,
                                   &GoliathMotion::gaitVelCallback, this);
 
-    body_vel_sub_ = nh_.subscribe("body_cmd_vel", VEL_QUEUE_SZ,
+    body_vel_sub_ = nh_.subscribe("body_cmd_vel", SUB_QUEUE_SZ,
                                   &GoliathMotion::bodyVelCallback, this);
 
-    legs_vel_sub_ = nh_.subscribe("legs_cmd_vel", VEL_QUEUE_SZ,
+    legs_vel_sub_ = nh_.subscribe("legs_cmd_vel", SUB_QUEUE_SZ,
                                   &GoliathMotion::legsVelCallback, this);
+
+    cmd_sub_ = nh_.subscribe("motion_cmd", SUB_QUEUE_SZ,
+                             &GoliathMotion::motionCmdCallback, this);
 
     jnt_traj_pub_ = private_nh_.advertise<trajectory_msgs::JointTrajectory>(
         "command", JNT_TRAJ_QUEUE_SZ);
@@ -63,6 +67,10 @@ public:
   {
     while (ros::ok())
     {
+      // geometry_msgs::Twist test;
+      // test.linear.x = 0.02;
+      // gait_velocity_ = test;
+
       BodyKinematics::LegsPosition new_legs_pos = curr_legs_pos_;
       BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
       urdf::Vector3 new_odom_dist = curr_odom_dist_;
@@ -71,8 +79,6 @@ public:
       shiftBodyPose(new_body_pose, MOVE_TIME_STEP);
       shiftOdomDist(new_odom_dist, MOVE_TIME_STEP);
 
-      // geometry_msgs::Twist test;
-      // test.linear.x = 0.02;
       gait_.accretion(gait_velocity_, new_legs_pos, MOVE_TIME_STEP);
 
       trajectory_msgs::JointTrajectory traj;
@@ -80,8 +86,7 @@ public:
       if (createJntTraj(new_legs_pos, new_body_pose, traj))
       {
         jnt_traj_pub_.publish(traj);
-        waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_,
-                         curr_odom_dist_);
+        waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_, curr_odom_dist_);
 
         curr_legs_pos_ = new_legs_pos;
         curr_body_pose_ = new_body_pose;
@@ -125,6 +130,16 @@ private:
   {
     legs_velocity_ = legs_vel;
     last_gait_or_legs_command_time_ = ros::Time::now();
+  }
+
+  void motionCmdCallback(const goliath_msgs::MotionCmd& cmd)
+  {
+    if (cmd.type == goliath_msgs::MotionCmd::SELECT_TRIPOD_GAIT)
+      gait_.setGaitType(GaitGenerator::TRIPOD);
+    else if (cmd.type == goliath_msgs::MotionCmd::SELECT_WAVE_GAIT)
+      gait_.setGaitType(GaitGenerator::WAVE);
+    if (cmd.type == goliath_msgs::MotionCmd::SELECT_RIPPLE_GAIT)
+      gait_.setGaitType(GaitGenerator::RIPPLE);
   }
 
   void shiftLegsPos(BodyKinematics::LegsPosition& new_lp, double time)
@@ -232,7 +247,7 @@ private:
         tf::StampedTransform(transform, ros::Time::now(), "base", "odom"));
   }
 
-  static const int VEL_QUEUE_SZ = 10;
+  static const int SUB_QUEUE_SZ = 10;
   static const int JNT_TRAJ_QUEUE_SZ = 10;
   static const int TF_NUMBERS_PER_STEP = 5;
   static const double MOVE_TIME_STEP, MOVE_TIME;
@@ -246,6 +261,7 @@ private:
   ros::Subscriber gait_vel_sub_;
   ros::Subscriber body_vel_sub_;
   ros::Subscriber legs_vel_sub_;
+  ros::Subscriber cmd_sub_;
   ros::Publisher jnt_traj_pub_;
 
   geometry_msgs::Twist gait_velocity_;
