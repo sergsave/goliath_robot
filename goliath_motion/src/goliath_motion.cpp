@@ -73,12 +73,19 @@ public:
 
       BodyKinematics::LegsPosition new_legs_pos = curr_legs_pos_;
       BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
-      urdf::Vector3 new_odom_dist = curr_odom_dist_;
+      urdf::Pose new_travel_state = curr_travel_state_;
 
       shiftLegsPos(new_legs_pos, MOVE_TIME_STEP);
       shiftBodyPose(new_body_pose, MOVE_TIME_STEP);
-      shiftOdomDist(new_odom_dist, MOVE_TIME_STEP);
-
+      shiftTravelState(new_travel_state, MOVE_TIME_STEP);
+      /*ROS_ERROR_STREAM("x " << new_travel_state.position.x << std::endl
+                            << "y " << new_travel_state.position.y << std::endl
+                            << "z " << new_travel_state.position.z << std::endl
+                            << "r " << new_travel_state.rotation.x << std::endl
+                            << "p " << new_travel_state.rotation.y << std::endl
+                            << "y " << new_travel_state.rotation.z
+                            << std::endl);
+      */
       gait_.accretion(gait_velocity_, new_legs_pos, MOVE_TIME_STEP);
 
       trajectory_msgs::JointTrajectory traj;
@@ -86,11 +93,11 @@ public:
       if (createJntTraj(new_legs_pos, new_body_pose, traj))
       {
         jnt_traj_pub_.publish(traj);
-        waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_, curr_odom_dist_);
+        waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_, curr_travel_state_);
 
         curr_legs_pos_ = new_legs_pos;
         curr_body_pose_ = new_body_pose;
-        curr_odom_dist_ = new_odom_dist;
+        curr_travel_state_ = new_travel_state;
       }
       else
         ros::Duration(MOVE_TIME_STEP).sleep();
@@ -117,6 +124,8 @@ private:
   void gaitVelCallback(const geometry_msgs::Twist& tw)
   {
     gait_velocity_ = tw;
+    //gait_velocity_.linear.y = tw.angular.z;
+    //gait_velocity_.angular.z = 0;
     last_gait_or_legs_command_time_ = ros::Time::now();
   }
 
@@ -167,13 +176,16 @@ private:
     new_bp.position = new_bp.position + iter;
   }
 
-  void shiftOdomDist(urdf::Vector3& new_dist, double time)
+  void shiftTravelState(urdf::Pose& new_st, double time)
   {
-    urdf::Vector3 iter(time * gait_velocity_.linear.x,
-                       time * gait_velocity_.linear.y,
-                       time * gait_velocity_.linear.z);
+    double roll, pitch, yaw;
+    new_st.rotation.getRPY(roll, pitch, yaw);
+    new_st.rotation.setFromRPY(0, 0, yaw + time * gait_velocity_.angular.z);
 
-    new_dist = new_dist + iter;
+    urdf::Vector3 iter(time * gait_velocity_.linear.x,
+                       time * gait_velocity_.linear.y, 0);
+
+    new_st.position = new_st.position + iter;
   }
 
   bool createJntTraj(const BodyKinematics::LegsPosition& lp,
@@ -202,16 +214,16 @@ private:
   }
 
   void waitAndPublishTf(double time, BodyKinematics::BodyPose pose,
-                        urdf::Vector3 od_dist)
+                        urdf::Pose travel_st)
   {
     const double tf_pub_period = time / TF_NUMBERS_PER_STEP;
 
     for (std::size_t i = 0; i != TF_NUMBERS_PER_STEP; ++i)
     {
       publishTransformToBase(pose);
-      publishTransformToOdom(od_dist);
+      publishTransformToOdom(travel_st);
       shiftBodyPose(pose, tf_pub_period);
-      shiftOdomDist(od_dist, tf_pub_period);
+      shiftTravelState(travel_st, tf_pub_period);
       ros::Duration(tf_pub_period).sleep();
     }
   }
@@ -238,10 +250,18 @@ private:
                                               "center_of_rotation", "base"));
   }
 
-  void publishTransformToOdom(const urdf::Vector3& dist)
+  void publishTransformToOdom(const urdf::Pose& travel_st)
   {
     tf::Transform transform;
-    transform.setOrigin(tf::Vector3(-dist.x, -dist.y, 0));
+    transform.setOrigin(
+        tf::Vector3(-travel_st.position.x, -travel_st.position.y, 0));
+
+    double roll, pitch, yaw;
+    travel_st.rotation.getRPY(roll, pitch, yaw);
+
+    tf::Quaternion q;
+    q.setRPY(0, 0, -yaw);
+    transform.setRotation(q);
 
     tf_br_.sendTransform(
         tf::StampedTransform(transform, ros::Time::now(), "base", "odom"));
@@ -273,7 +293,7 @@ private:
 
   BodyKinematics::LegsPosition curr_legs_pos_;
   BodyKinematics::BodyPose curr_body_pose_;
-  urdf::Vector3 curr_odom_dist_;
+  urdf::Pose curr_travel_state_;
 
   // use for visualisation
   tf::TransformBroadcaster tf_br_;

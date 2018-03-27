@@ -40,12 +40,12 @@ public:
   void accretion(const geometry_msgs::Twist& vel,
                  BodyKinematics::LegsPosition& legs_pos, double time)
   {
+    if (vel.linear.x == 0 && vel.linear.y == 0 && vel.angular.z == 0)
+      return;
+
     urdf::Vector3 distance(
         vel.linear.x * time * STEP_NUMBERS * (sequence_.size() - 2),
         vel.linear.y * time * STEP_NUMBERS * (sequence_.size() - 2), 0);
-
-    if (distance.x == 0)
-      return;
 
     for (std::size_t l = BodyKinematics::LF;
          l != BodyKinematics::NUMBER_OF_LEGS; l++)
@@ -69,10 +69,10 @@ public:
             returnLeg(curr_legs_pos_[l], back_move_dist, curr_phase_step_);
       }
     }
-    /*
-    ROS_ERROR_STREAM(
-        "ph " << curr_phase_ << " st " << curr_phase_step_ << " pos.x "
-              << legs_pos[0].x - default_legs_pos_[0].x << " pos.z "
+
+    /*ROS_ERROR_STREAM(
+        "ph " << curr_phase_ << " st " << curr_phase_step_ << " pos.y "
+              << legs_pos[0].y - default_legs_pos_[0].y << " pos.z "
               << legs_pos[0].z - default_legs_pos_[0].z);
     */
     if (curr_phase_step_++ == STEP_NUMBERS - 1)
@@ -92,6 +92,7 @@ private:
     LegKinematics::LegPos new_pos;
 
     new_pos.x = def_pos.x - dist.x / 2 * (STEP_NUMBERS - step) / STEP_NUMBERS;
+    new_pos.y = def_pos.y - dist.y / 2 * (STEP_NUMBERS - step) / STEP_NUMBERS;
     new_pos.z = def_pos.z + LIFT_HEIGHT * step / STEP_NUMBERS;
     /*std::size_t mid_step = STEP_NUMBERS / 2;
 
@@ -106,7 +107,6 @@ private:
       new_pos.z = def_pos.z + LIFT_HEIGHT * (2 * mid_step - step) / mid_step;
     }*/
 
-    new_pos.y = def_pos.y;
     return new_pos;
   }
 
@@ -116,6 +116,7 @@ private:
     LegKinematics::LegPos new_pos;
 
     new_pos.x = def_pos.x + dist.x / 2 * (step + 1) / STEP_NUMBERS;
+    new_pos.y = def_pos.y + dist.y / 2 * (step + 1) / STEP_NUMBERS;
     new_pos.z =
         def_pos.z + LIFT_HEIGHT * (STEP_NUMBERS - (step + 1)) / STEP_NUMBERS;
 
@@ -131,8 +132,6 @@ private:
       new_pos.x = def_pos.x + dist.x / 2 * (step - mid_step) / mid_step;
       new_pos.z = def_pos.z + LIFT_HEIGHT * (2 * mid_step - step) / mid_step;
     }*/
-
-    new_pos.y = def_pos.y;
     return new_pos;
   }
 
@@ -142,8 +141,8 @@ private:
     LegKinematics::LegPos new_pos;
 
     new_pos.x = pos.x - dist.x * (step + 1) / STEP_NUMBERS;
+    new_pos.y = pos.y - dist.y * (step + 1) / STEP_NUMBERS;;
     new_pos.z = default_legs_pos_[0].z;
-    new_pos.y = pos.y;
 
     /*std::size_t mid_step = STEP_NUMBERS / 2;
 
@@ -157,7 +156,6 @@ private:
       new_pos.x = pos.x - dist.x / 2 * (step - mid_step) / mid_step;
       new_pos.z = pos.z;
     }*/
-
     return new_pos;
   }
 
