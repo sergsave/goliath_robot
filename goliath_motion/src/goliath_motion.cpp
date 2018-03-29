@@ -42,8 +42,8 @@ public:
     }
 
     body_ = BodyKinematics(model);
-    curr_legs_pos_ = body_.getDefaultLegsPos();
     gait_ = GaitGenerator(body_);
+    curr_legs_pos_ = body_.getDefaultLegsPos();
 
     // create public's publisher and subscriber
 
@@ -56,6 +56,8 @@ public:
     legs_vel_sub_ = nh_.subscribe("legs_cmd_vel", SUB_QUEUE_SZ,
                                   &GoliathMotion::legsVelCallback, this);
 
+    // for manual set use:
+    // rostopic pub -1 /motion_cmd goliath_msgs/MotionCmd -- '2'
     cmd_sub_ = nh_.subscribe("motion_cmd", SUB_QUEUE_SZ,
                              &GoliathMotion::motionCmdCallback, this);
 
@@ -124,8 +126,8 @@ private:
   void gaitVelCallback(const geometry_msgs::Twist& tw)
   {
     gait_velocity_ = tw;
-    //gait_velocity_.linear.y = tw.angular.z;
-    //gait_velocity_.angular.z = 0;
+    // gait_velocity_.linear.y = tw.angular.z;
+    // gait_velocity_.angular.z = 0;
     last_gait_or_legs_command_time_ = ros::Time::now();
   }
 
@@ -155,10 +157,10 @@ private:
   {
     for (std::size_t l = 0; l != new_lp.size(); ++l)
     {
-      LegKinematics::LegPos iter(time * legs_velocity_.velocities[l].x,
+      LegKinematics::LegPos delta(time * legs_velocity_.velocities[l].x,
                                  time * legs_velocity_.velocities[l].y,
                                  time * legs_velocity_.velocities[l].z);
-      new_lp[l] = new_lp[l] + iter;
+      new_lp[l] = new_lp[l] + delta;
     }
   }
 
@@ -170,10 +172,10 @@ private:
                                pitch + time * body_velocity_.angular.y,
                                yaw + time * body_velocity_.angular.z);
 
-    urdf::Vector3 iter(time * body_velocity_.linear.x,
+    urdf::Vector3 delta(time * body_velocity_.linear.x,
                        time * body_velocity_.linear.y,
                        time * body_velocity_.linear.z);
-    new_bp.position = new_bp.position + iter;
+    new_bp.position = new_bp.position + delta;
   }
 
   void shiftTravelState(urdf::Pose& new_st, double time)
@@ -182,10 +184,12 @@ private:
     new_st.rotation.getRPY(roll, pitch, yaw);
     new_st.rotation.setFromRPY(0, 0, yaw + time * gait_velocity_.angular.z);
 
-    urdf::Vector3 iter(time * gait_velocity_.linear.x,
+    urdf::Vector3 delta(time * gait_velocity_.linear.x,
                        time * gait_velocity_.linear.y, 0);
 
-    new_st.position = new_st.position + iter;
+    delta = new_st.rotation * delta;
+
+    new_st.position = new_st.position + delta;
   }
 
   bool createJntTraj(const BodyKinematics::LegsPosition& lp,
@@ -221,7 +225,7 @@ private:
     for (std::size_t i = 0; i != TF_NUMBERS_PER_STEP; ++i)
     {
       publishTransformToBase(pose);
-      publishTransformToOdom(travel_st);
+      publishTransformToWorld(travel_st);
       shiftBodyPose(pose, tf_pub_period);
       shiftTravelState(travel_st, tf_pub_period);
       ros::Duration(tf_pub_period).sleep();
@@ -250,21 +254,55 @@ private:
                                               "center_of_rotation", "base"));
   }
 
-  void publishTransformToOdom(const urdf::Pose& travel_st)
+#define FIRST_ROT
+//#define FIRST_MOV
+//#define ADD_ROT
+//#define ADD_ROT2
+  void publishTransformToWorld(const urdf::Pose& travel_st)
   {
     tf::Transform transform;
-    transform.setOrigin(
-        tf::Vector3(-travel_st.position.x, -travel_st.position.y, 0));
+    tf::Quaternion q;
 
     double roll, pitch, yaw;
     travel_st.rotation.getRPY(roll, pitch, yaw);
 
-    tf::Quaternion q;
+    urdf::Rotation rot;
+#ifdef ADD_ROT
+    rot.setFromRPY(0, 0, yaw);
+#else
+    rot.setFromRPY(0, 0, 0);
+#endif
+    urdf::Vector3 rot_travel_pos = rot * travel_st.position;
+#ifdef FIRST_MOV
+    transform.setOrigin(tf::Vector3(-rot_travel_pos.x, -rot_travel_pos.y, 0));
+    q.setRPY(0, 0, 0);
+    transform.setRotation(q);
+#else
+    transform.setOrigin(tf::Vector3(0, 0, 0));
     q.setRPY(0, 0, -yaw);
     transform.setRotation(q);
+#endif
 
     tf_br_.sendTransform(
-        tf::StampedTransform(transform, ros::Time::now(), "base", "odom"));
+        tf::StampedTransform(transform, ros::Time::now(), "base", "rot_base"));
+
+#ifdef FIRST_ROT
+    transform.setOrigin(tf::Vector3(-rot_travel_pos.x, -rot_travel_pos.y, 0));
+#ifdef ADD_ROT2
+    q.setRPY(0, 0, yaw);
+#else
+    q.setRPY(0, 0, 0);
+#endif
+
+    transform.setRotation(q);
+#else
+    transform.setOrigin(tf::Vector3(0, 0, 0));
+    q.setRPY(0, 0, -yaw);
+    transform.setRotation(q);
+#endif
+
+    tf_br_.sendTransform(
+        tf::StampedTransform(transform, ros::Time::now(), "rot_base", "world"));
   }
 
   static const int SUB_QUEUE_SZ = 10;

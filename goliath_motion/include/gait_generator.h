@@ -141,7 +141,7 @@ private:
     LegKinematics::LegPos new_pos;
 
     new_pos.x = pos.x - dist.x * (step + 1) / STEP_NUMBERS;
-    new_pos.y = pos.y - dist.y * (step + 1) / STEP_NUMBERS;;
+    new_pos.y = pos.y - dist.y * (step + 1) / STEP_NUMBERS;
     new_pos.z = default_legs_pos_[0].z;
 
     /*std::size_t mid_step = STEP_NUMBERS / 2;
@@ -263,7 +263,7 @@ private:
     phase[BodyKinematics::RF] = RETURN;
     phase[BodyKinematics::RM] = PUT_UP;
     phase[BodyKinematics::RR] = RETURN;
-    sequence_.push_back(phase);    
+    sequence_.push_back(phase);
     phase[BodyKinematics::LF] = RETURN;
     phase[BodyKinematics::LM] = RETURN;
     phase[BodyKinematics::LR] = RETURN;
