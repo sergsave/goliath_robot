@@ -27,7 +27,8 @@ public:
   GoliathMotion(ros::NodeHandle node)
       : nh_(node), private_nh_("~"),
         last_gait_or_legs_command_time_(ros::Time::now()),
-        last_body_command_time_(ros::Time::now())
+        last_body_command_time_(ros::Time::now()),
+        curr_legs_yaw_{{0, 0, 0, 0, 0, 0}}
   {
     urdf::Model model;
 
@@ -47,7 +48,7 @@ public:
 
     // create public's publisher and subscriber
 
-    gait_vel_sub_ = nh_.subscribe("gait_cmd_vel", SUB_QUEUE_SZ,
+    gait_vel_sub_ = nh_.subscribe("cmd_vel", SUB_QUEUE_SZ,
                                   &GoliathMotion::gaitVelCallback, this);
 
     body_vel_sub_ = nh_.subscribe("body_cmd_vel", SUB_QUEUE_SZ,
@@ -76,6 +77,7 @@ public:
       BodyKinematics::LegsPosition new_legs_pos = curr_legs_pos_;
       BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
       urdf::Pose new_travel_state = curr_travel_state_;
+      BodyKinematics::LegsYaw new_legs_yaw = curr_legs_yaw_;
 
       shiftLegsPos(new_legs_pos, MOVE_TIME_STEP);
       shiftBodyPose(new_body_pose, MOVE_TIME_STEP);
@@ -88,11 +90,13 @@ public:
                             << "y " << new_travel_state.rotation.z
                             << std::endl);
       */
-      gait_.accretion(gait_velocity_, new_legs_pos, MOVE_TIME_STEP);
+      gait_.accretion(gait_velocity_, new_legs_pos, new_legs_yaw,
+                      MOVE_TIME_STEP);
 
       trajectory_msgs::JointTrajectory traj;
 
-      if (createJntTraj(new_legs_pos, new_body_pose, traj))
+      if (createJntTraj(new_legs_pos, new_body_pose, new_legs_yaw,
+                        MOVE_TIME_STEP, traj))
       {
         jnt_traj_pub_.publish(traj);
         waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_, curr_travel_state_);
@@ -100,6 +104,7 @@ public:
         curr_legs_pos_ = new_legs_pos;
         curr_body_pose_ = new_body_pose;
         curr_travel_state_ = new_travel_state;
+        curr_legs_yaw_ = new_legs_yaw;
       }
       else
         ros::Duration(MOVE_TIME_STEP).sleep();
@@ -153,39 +158,39 @@ private:
       gait_.setGaitType(GaitGenerator::RIPPLE);
   }
 
-  void shiftLegsPos(BodyKinematics::LegsPosition& new_lp, double time)
+  void shiftLegsPos(BodyKinematics::LegsPosition& new_lp, double dt)
   {
     for (std::size_t l = 0; l != new_lp.size(); ++l)
     {
-      LegKinematics::LegPos delta(time * legs_velocity_.velocities[l].x,
-                                 time * legs_velocity_.velocities[l].y,
-                                 time * legs_velocity_.velocities[l].z);
+      LegKinematics::LegPos delta(dt * legs_velocity_.velocities[l].x,
+                                  dt * legs_velocity_.velocities[l].y,
+                                  dt * legs_velocity_.velocities[l].z);
       new_lp[l] = new_lp[l] + delta;
     }
   }
 
-  void shiftBodyPose(BodyKinematics::BodyPose& new_bp, double time)
+  void shiftBodyPose(BodyKinematics::BodyPose& new_bp, double dt)
   {
     double roll, pitch, yaw;
     new_bp.rotation.getRPY(roll, pitch, yaw);
-    new_bp.rotation.setFromRPY(roll + time * body_velocity_.angular.x,
-                               pitch + time * body_velocity_.angular.y,
-                               yaw + time * body_velocity_.angular.z);
+    new_bp.rotation.setFromRPY(roll + dt * body_velocity_.angular.x,
+                               pitch + dt * body_velocity_.angular.y,
+                               yaw + dt * body_velocity_.angular.z);
 
-    urdf::Vector3 delta(time * body_velocity_.linear.x,
-                       time * body_velocity_.linear.y,
-                       time * body_velocity_.linear.z);
+    urdf::Vector3 delta(dt * body_velocity_.linear.x,
+                        dt * body_velocity_.linear.y,
+                        dt * body_velocity_.linear.z);
     new_bp.position = new_bp.position + delta;
   }
 
-  void shiftTravelState(urdf::Pose& new_st, double time)
+  void shiftTravelState(urdf::Pose& new_st, double dt)
   {
     double roll, pitch, yaw;
     new_st.rotation.getRPY(roll, pitch, yaw);
-    new_st.rotation.setFromRPY(0, 0, yaw + time * gait_velocity_.angular.z);
+    new_st.rotation.setFromRPY(0, 0, yaw + dt * gait_velocity_.angular.z);
 
-    urdf::Vector3 delta(time * gait_velocity_.linear.x,
-                       time * gait_velocity_.linear.y, 0);
+    urdf::Vector3 delta(dt * gait_velocity_.linear.x,
+                        dt * gait_velocity_.linear.y, 0);
 
     delta = new_st.rotation * delta;
 
@@ -194,13 +199,15 @@ private:
 
   bool createJntTraj(const BodyKinematics::LegsPosition& lp,
                      const BodyKinematics::BodyPose& bp,
+                     const BodyKinematics::LegsYaw& ly,
+                     double dur,
                      trajectory_msgs::JointTrajectory& traj)
   {
     trajectory_msgs::JointTrajectoryPoint traj_point;
 
     try
     {
-      body_.calculateJntAngles(bp, lp, traj_point);
+      body_.calculateJntAngles(bp, lp, ly, traj_point);
     }
     catch (std::logic_error e)
     {
@@ -211,7 +218,7 @@ private:
     body_.getLegsJntName(traj.joint_names);
     traj.header.stamp = ros::Time::now();
 
-    traj_point.time_from_start = ros::Duration(MOVE_TIME_STEP);
+    traj_point.time_from_start = ros::Duration(dur);
     traj.points.push_back(traj_point);
 
     return true;
@@ -254,10 +261,6 @@ private:
                                               "center_of_rotation", "base"));
   }
 
-#define FIRST_ROT
-//#define FIRST_MOV
-//#define ADD_ROT
-//#define ADD_ROT2
   void publishTransformToWorld(const urdf::Pose& travel_st)
   {
     tf::Transform transform;
@@ -266,40 +269,17 @@ private:
     double roll, pitch, yaw;
     travel_st.rotation.getRPY(roll, pitch, yaw);
 
-    urdf::Rotation rot;
-#ifdef ADD_ROT
-    rot.setFromRPY(0, 0, yaw);
-#else
-    rot.setFromRPY(0, 0, 0);
-#endif
-    urdf::Vector3 rot_travel_pos = rot * travel_st.position;
-#ifdef FIRST_MOV
-    transform.setOrigin(tf::Vector3(-rot_travel_pos.x, -rot_travel_pos.y, 0));
-    q.setRPY(0, 0, 0);
-    transform.setRotation(q);
-#else
     transform.setOrigin(tf::Vector3(0, 0, 0));
     q.setRPY(0, 0, -yaw);
     transform.setRotation(q);
-#endif
 
     tf_br_.sendTransform(
         tf::StampedTransform(transform, ros::Time::now(), "base", "rot_base"));
 
-#ifdef FIRST_ROT
-    transform.setOrigin(tf::Vector3(-rot_travel_pos.x, -rot_travel_pos.y, 0));
-#ifdef ADD_ROT2
-    q.setRPY(0, 0, yaw);
-#else
+    transform.setOrigin(
+        tf::Vector3(-travel_st.position.x, -travel_st.position.y, 0));
     q.setRPY(0, 0, 0);
-#endif
-
     transform.setRotation(q);
-#else
-    transform.setOrigin(tf::Vector3(0, 0, 0));
-    q.setRPY(0, 0, -yaw);
-    transform.setRotation(q);
-#endif
 
     tf_br_.sendTransform(
         tf::StampedTransform(transform, ros::Time::now(), "rot_base", "world"));
@@ -332,6 +312,7 @@ private:
   BodyKinematics::LegsPosition curr_legs_pos_;
   BodyKinematics::BodyPose curr_body_pose_;
   urdf::Pose curr_travel_state_;
+  BodyKinematics::LegsYaw curr_legs_yaw_;
 
   // use for visualisation
   tf::TransformBroadcaster tf_br_;

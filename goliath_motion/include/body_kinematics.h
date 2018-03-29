@@ -36,6 +36,7 @@ public:
   };
 
   typedef std::array<LegKinematics::LegPos, NUMBER_OF_LEGS> LegsPosition;
+  typedef std::array<double, NUMBER_OF_LEGS> LegsYaw;
   typedef urdf::Pose BodyPose;
 
   // methods for calculating
@@ -44,6 +45,7 @@ public:
   void calculateJntAngles(const BodyPose&,
                           trajectory_msgs::JointTrajectoryPoint&);
   void calculateJntAngles(const BodyPose&, const LegsPosition&,
+                          const LegsYaw&,
                           trajectory_msgs::JointTrajectoryPoint&);
 
   void getLegsJntName(std::vector<std::string>&);
@@ -62,6 +64,5 @@ private:
   static const std::string LEG_ROOT_JNT_BASE_NAME;
   std::array<LegKinematics, NUMBER_OF_LEGS> legs_;
   LegsPosition legs_origin_;
-
 };
 #endif /* BODY_KINEMATICS_H */

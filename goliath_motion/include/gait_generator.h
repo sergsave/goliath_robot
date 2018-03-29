@@ -29,45 +29,54 @@ public:
     curr_legs_pos_ = default_legs_pos_;
     curr_phase_step_ = curr_phase_ = 0;
 
-    if(gt == TRIPOD)
+    if (gt == TRIPOD)
       setSequenceToTripod();
-    if(gt == RIPPLE)
+    if (gt == RIPPLE)
       setSequenceToRipple();
-    if(gt == WAVE)
+    if (gt == WAVE)
       setSequenceToWave();
   }
 
   void accretion(const geometry_msgs::Twist& vel,
-                 BodyKinematics::LegsPosition& legs_pos, double time)
+                 BodyKinematics::LegsPosition& legs_pos,
+                 BodyKinematics::LegsYaw& legs_yaw, double time)
   {
     if (vel.linear.x == 0 && vel.linear.y == 0 && vel.angular.z == 0)
       return;
 
+    LegState temp;
+
     urdf::Vector3 distance(
         vel.linear.x * time * STEP_NUMBERS * (sequence_.size() - 2),
         vel.linear.y * time * STEP_NUMBERS * (sequence_.size() - 2), 0);
+
+    double yaw = vel.angular.z * time * STEP_NUMBERS * (sequence_.size() - 2);
 
     for (std::size_t l = BodyKinematics::LF;
          l != BodyKinematics::NUMBER_OF_LEGS; l++)
     {
       urdf::Vector3 back_move_dist(distance.x / (sequence_.size() - 2),
                                    distance.y / (sequence_.size() - 2), 0);
+      double back_move_yaw = yaw / (sequence_.size() - 2);
 
       if (sequence_[curr_phase_][l] == PUT_UP)
       {
-        legs_pos[l] =
-            putUpLeg(default_legs_pos_[l], distance, curr_phase_step_);
+        temp = putUpLeg(default_legs_pos_[l], distance, yaw,
+                        curr_phase_step_);
       }
       else if (sequence_[curr_phase_][l] == PUT_DOWN)
       {
-        legs_pos[l] =
-            putDownLeg(default_legs_pos_[l], distance, curr_phase_step_);
+        temp = putDownLeg(default_legs_pos_[l], distance,yaw,
+                          curr_phase_step_);
       }
       else
       {
-        legs_pos[l] =
-            returnLeg(curr_legs_pos_[l], back_move_dist, curr_phase_step_);
+        temp = returnLeg(curr_legs_pos_[l], curr_legs_yaw_[l],
+                         back_move_dist, back_move_yaw,
+                         curr_phase_step_);
       }
+      legs_pos[l] = temp.lp;
+      legs_yaw[l] = temp.yaw;
     }
 
     /*ROS_ERROR_STREAM(
@@ -79,6 +88,7 @@ public:
     {
       curr_phase_step_ = 0;
       curr_legs_pos_ = legs_pos;
+      curr_legs_yaw_ = legs_yaw;
 
       if (curr_phase_++ == sequence_.size() - 1)
         curr_phase_ = 0;
@@ -86,14 +96,22 @@ public:
   }
 
 private:
-  LegKinematics::LegPos putUpLeg(LegKinematics::LegPos def_pos,
-                                 urdf::Vector3 dist, std::size_t step)
+  struct LegState
   {
-    LegKinematics::LegPos new_pos;
+    LegKinematics::LegPos lp;
+    double yaw;
+  };
 
-    new_pos.x = def_pos.x - dist.x / 2 * (STEP_NUMBERS - step) / STEP_NUMBERS;
-    new_pos.y = def_pos.y - dist.y / 2 * (STEP_NUMBERS - step) / STEP_NUMBERS;
-    new_pos.z = def_pos.z + LIFT_HEIGHT * step / STEP_NUMBERS;
+  LegState putUpLeg(LegKinematics::LegPos def_pos, urdf::Vector3 dist,
+                    double yaw, std::size_t step)
+  {
+    LegState new_state;
+
+    new_state.lp.x =
+        def_pos.x - dist.x / 2 * (STEP_NUMBERS - step) / STEP_NUMBERS;
+    new_state.lp.y =
+        def_pos.y - dist.y / 2 * (STEP_NUMBERS - step) / STEP_NUMBERS;
+    new_state.lp.z = def_pos.z + LIFT_HEIGHT * step / STEP_NUMBERS;
     /*std::size_t mid_step = STEP_NUMBERS / 2;
 
     if (step < mid_step)
@@ -106,18 +124,19 @@ private:
       new_pos.x = def_pos.x + dist.x / 2 * (step - mid_step) / mid_step;
       new_pos.z = def_pos.z + LIFT_HEIGHT * (2 * mid_step - step) / mid_step;
     }*/
+    new_state.yaw = -yaw / 2 * (STEP_NUMBERS - step) / STEP_NUMBERS;
 
-    return new_pos;
+    return new_state;
   }
 
-  LegKinematics::LegPos putDownLeg(LegKinematics::LegPos def_pos,
-                                   urdf::Vector3 dist, std::size_t step)
+  LegState putDownLeg(LegKinematics::LegPos def_pos, urdf::Vector3 dist,
+                      double yaw, std::size_t step)
   {
-    LegKinematics::LegPos new_pos;
+    LegState new_state;
 
-    new_pos.x = def_pos.x + dist.x / 2 * (step + 1) / STEP_NUMBERS;
-    new_pos.y = def_pos.y + dist.y / 2 * (step + 1) / STEP_NUMBERS;
-    new_pos.z =
+    new_state.lp.x = def_pos.x + dist.x / 2 * (step + 1) / STEP_NUMBERS;
+    new_state.lp.y = def_pos.y + dist.y / 2 * (step + 1) / STEP_NUMBERS;
+    new_state.lp.z =
         def_pos.z + LIFT_HEIGHT * (STEP_NUMBERS - (step + 1)) / STEP_NUMBERS;
 
     /*std::size_t mid_step = STEP_NUMBERS / 2;
@@ -132,17 +151,19 @@ private:
       new_pos.x = def_pos.x + dist.x / 2 * (step - mid_step) / mid_step;
       new_pos.z = def_pos.z + LIFT_HEIGHT * (2 * mid_step - step) / mid_step;
     }*/
-    return new_pos;
+    new_state.yaw = yaw / 2 * (step + 1) / STEP_NUMBERS;
+    return new_state;
   }
 
-  LegKinematics::LegPos returnLeg(LegKinematics::LegPos pos, urdf::Vector3 dist,
-                                  std::size_t step)
+  LegState returnLeg(LegKinematics::LegPos pos, double prev_yaw,
+                     urdf::Vector3 dist,
+                     double yaw, std::size_t step)
   {
-    LegKinematics::LegPos new_pos;
+    LegState new_state;
 
-    new_pos.x = pos.x - dist.x * (step + 1) / STEP_NUMBERS;
-    new_pos.y = pos.y - dist.y * (step + 1) / STEP_NUMBERS;
-    new_pos.z = default_legs_pos_[0].z;
+    new_state.lp.x = pos.x - dist.x * (step + 1) / STEP_NUMBERS;
+    new_state.lp.y = pos.y - dist.y * (step + 1) / STEP_NUMBERS;
+    new_state.lp.z = default_legs_pos_[0].z;
 
     /*std::size_t mid_step = STEP_NUMBERS / 2;
 
@@ -156,7 +177,8 @@ private:
       new_pos.x = pos.x - dist.x / 2 * (step - mid_step) / mid_step;
       new_pos.z = pos.z;
     }*/
-    return new_pos;
+    new_state.yaw = prev_yaw - yaw * (step + 1) / STEP_NUMBERS;
+    return new_state;
   }
 
   void setSequenceToTripod()
@@ -351,6 +373,7 @@ private:
   std::vector<Phase> sequence_;
   BodyKinematics::LegsPosition default_legs_pos_;
   BodyKinematics::LegsPosition curr_legs_pos_;
+  BodyKinematics::LegsYaw curr_legs_yaw_;
 };
 
 #endif // GAIT_GENERATOR_H

@@ -85,12 +85,14 @@ void BodyKinematics::calculateJntAngles(
     const BodyPose& pose, trajectory_msgs::JointTrajectoryPoint& jnt)
 {
   LegsPosition def_l_pos = getDefaultLegsPos();
-  calculateJntAngles(pose, def_l_pos, jnt);
+  LegsYaw def_l_yaw{{0,0,0,0,0,0}};
+  calculateJntAngles(pose, def_l_pos, def_l_yaw, jnt);
 }
 
 // calculate angles for controle body
 void BodyKinematics::calculateJntAngles(
     const BodyPose& body_pose, const LegsPosition& legs_pos,
+    const LegsYaw& legs_yaw,
     trajectory_msgs::JointTrajectoryPoint& jnt)
 {
 
@@ -100,7 +102,7 @@ void BodyKinematics::calculateJntAngles(
   double roll, pitch, yaw;
 
   body_pose.rotation.getRPY(roll, pitch, yaw);
-  rotation.setFromRPY(-roll, -pitch, -yaw);
+
 
   for (std::size_t i = LF; i != legs_.size(); ++i)
   {
@@ -119,6 +121,7 @@ void BodyKinematics::calculateJntAngles(
     //       *  | *
     //          0------>x
     //
+    rotation.setFromRPY(-roll, -pitch, -yaw + legs_yaw[i]);
     LegKinematics::LegPos leg_end_in_rot_frame = rotation * leg_end;
 
     // When body turns, leg should stand, coordinates of leg_end should
