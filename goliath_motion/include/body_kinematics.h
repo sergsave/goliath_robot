@@ -26,7 +26,7 @@ public:
   // right forward, right middle, right rear
   enum LegType
   {
-    LF = 0,
+    LF,
     LM,
     LR,
     RF,
@@ -35,25 +35,33 @@ public:
     NUMBER_OF_LEGS
   };
 
-  typedef std::array<LegKinematics::LegPos, NUMBER_OF_LEGS> LegsPosition;
-  typedef std::array<double, NUMBER_OF_LEGS> LegsYaw;
+  struct StanceOfLeg
+  {
+    StanceOfLeg() : rot_offset(0) {}
+    LegKinematics::LegPos pos;
+    double rot_offset;
+  };
+
+  typedef std::array<StanceOfLeg, NUMBER_OF_LEGS> LegsStance;
   typedef urdf::Pose BodyPose;
 
   // methods for calculating
-  void calculateJntAngles(const LegsPosition&,
-                          trajectory_msgs::JointTrajectoryPoint&);
   void calculateJntAngles(const BodyPose&,
                           trajectory_msgs::JointTrajectoryPoint&);
-  void calculateJntAngles(const BodyPose&, const LegsPosition&,
-                          const LegsYaw&,
+  void calculateJntAngles(const BodyPose&, const LegsStance&,
                           trajectory_msgs::JointTrajectoryPoint&);
 
   void getLegsJntName(std::vector<std::string>&);
 
-  LegsPosition getDefaultLegsPos();
+  LegsStance getDefaultLegsStance();
   double getClearance();
 
 private:
+  typedef std::array<LegKinematics::LegPos, NUMBER_OF_LEGS> LegsPos;
+
+  void calculateJntAngles(const LegsPos&,
+                          trajectory_msgs::JointTrajectoryPoint&);
+
   // urdf::Vector3 doesnt have "-" operator
   urdf::Vector3 invVec(urdf::Vector3 vec)
   {
@@ -63,6 +71,6 @@ private:
   static const std::array<std::string, NUMBER_OF_LEGS> LEG_NAMES;
   static const std::string LEG_ROOT_JNT_BASE_NAME;
   std::array<LegKinematics, NUMBER_OF_LEGS> legs_;
-  LegsPosition legs_origin_;
+  LegsPos legs_origin_;
 };
 #endif /* BODY_KINEMATICS_H */

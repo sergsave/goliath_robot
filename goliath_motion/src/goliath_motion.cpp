@@ -27,8 +27,7 @@ public:
   GoliathMotion(ros::NodeHandle node)
       : nh_(node), private_nh_("~"),
         last_gait_or_legs_command_time_(ros::Time::now()),
-        last_body_command_time_(ros::Time::now()),
-        curr_legs_yaw_{{0, 0, 0, 0, 0, 0}}
+        last_body_command_time_(ros::Time::now())
   {
     urdf::Model model;
 
@@ -44,7 +43,7 @@ public:
 
     body_ = BodyKinematics(model);
     gait_ = GaitGenerator(body_);
-    curr_legs_pos_ = body_.getDefaultLegsPos();
+    curr_legs_stance_ = body_.getDefaultLegsStance();
 
     // create public's publisher and subscriber
 
@@ -70,69 +69,61 @@ public:
   {
     while (ros::ok())
     {
-      // geometry_msgs::Twist test;
-      // test.linear.x = 0.02;
-      // gait_velocity_ = test;
-
-      BodyKinematics::LegsPosition new_legs_pos = curr_legs_pos_;
-      BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
-      urdf::Pose new_travel_state = curr_travel_state_;
-      BodyKinematics::LegsYaw new_legs_yaw = curr_legs_yaw_;
-
-      shiftLegsPos(new_legs_pos, MOVE_TIME_STEP);
-      shiftBodyPose(new_body_pose, MOVE_TIME_STEP);
-      shiftTravelState(new_travel_state, MOVE_TIME_STEP);
-      /*ROS_ERROR_STREAM("x " << new_travel_state.position.x << std::endl
-                            << "y " << new_travel_state.position.y << std::endl
-                            << "z " << new_travel_state.position.z << std::endl
-                            << "r " << new_travel_state.rotation.x << std::endl
-                            << "p " << new_travel_state.rotation.y << std::endl
-                            << "y " << new_travel_state.rotation.z
-                            << std::endl);
-      */
-      gait_.accretion(gait_velocity_, new_legs_pos, new_legs_yaw,
-                      MOVE_TIME_STEP);
-
-      trajectory_msgs::JointTrajectory traj;
-
-      if (createJntTraj(new_legs_pos, new_body_pose, new_legs_yaw,
-                        MOVE_TIME_STEP, traj))
-      {
-        jnt_traj_pub_.publish(traj);
-        waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_, curr_travel_state_);
-
-        curr_legs_pos_ = new_legs_pos;
-        curr_body_pose_ = new_body_pose;
-        curr_travel_state_ = new_travel_state;
-        curr_legs_yaw_ = new_legs_yaw;
-      }
-      else
-        ros::Duration(MOVE_TIME_STEP).sleep();
-
-      if (ros::Time::now() - last_gait_or_legs_command_time_ >
-          ros::Duration(MOVE_TIME))
-      {
-        // set vel to zero
-        legs_velocity_ = goliath_msgs::LegsVel();
-        gait_velocity_ = geometry_msgs::Twist();
-      }
-
-      if (ros::Time::now() - last_body_command_time_ > ros::Duration(MOVE_TIME))
-      {
-        // set vel to zero
-        body_velocity_ = geometry_msgs::Twist();
-      }
-
+      updateAndMove();
+      resetVelocities();
       ros::spinOnce();
     }
   }
 
 private:
+
+  void updateAndMove ()
+  {
+    BodyKinematics::LegsStance new_legs_stance = curr_legs_stance_;
+    BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
+    urdf::Pose new_travel_state = curr_travel_state_;
+
+    shiftLegsStance(new_legs_stance, MOVE_TIME_STEP);
+    shiftBodyPose(new_body_pose, MOVE_TIME_STEP);
+    shiftTravelState(new_travel_state, MOVE_TIME_STEP);
+
+    gait_.accretion(gait_velocity_, new_legs_stance, MOVE_TIME_STEP);
+
+    trajectory_msgs::JointTrajectory traj;
+
+    if (createJntTraj(new_legs_stance, new_body_pose, MOVE_TIME_STEP, traj))
+    {
+      jnt_traj_pub_.publish(traj);
+      waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_, curr_travel_state_);
+
+      curr_legs_stance_ = new_legs_stance;
+      curr_body_pose_ = new_body_pose;
+      curr_travel_state_ = new_travel_state;
+    }
+    else
+      ros::Duration(MOVE_TIME_STEP).sleep();
+  }
+
+  void resetVelocities ()
+  {
+    if (ros::Time::now() - last_gait_or_legs_command_time_ >
+        ros::Duration(MOVE_TIME))
+    {
+      // set vel to zero
+      legs_velocity_ = goliath_msgs::LegsVel();
+      gait_velocity_ = geometry_msgs::Twist();
+    }
+
+    if (ros::Time::now() - last_body_command_time_ > ros::Duration(MOVE_TIME))
+    {
+      // set vel to zero
+      body_velocity_ = geometry_msgs::Twist();
+    }
+  }
+
   void gaitVelCallback(const geometry_msgs::Twist& tw)
   {
     gait_velocity_ = tw;
-    // gait_velocity_.linear.y = tw.angular.z;
-    // gait_velocity_.angular.z = 0;
     last_gait_or_legs_command_time_ = ros::Time::now();
   }
 
@@ -151,21 +142,21 @@ private:
   void motionCmdCallback(const goliath_msgs::MotionCmd& cmd)
   {
     if (cmd.type == goliath_msgs::MotionCmd::SELECT_TRIPOD_GAIT)
-      gait_.setGaitType(GaitGenerator::TRIPOD);
+      gait_.setType(GaitGenerator::TRIPOD);
     else if (cmd.type == goliath_msgs::MotionCmd::SELECT_WAVE_GAIT)
-      gait_.setGaitType(GaitGenerator::WAVE);
+      gait_.setType(GaitGenerator::WAVE);
     if (cmd.type == goliath_msgs::MotionCmd::SELECT_RIPPLE_GAIT)
-      gait_.setGaitType(GaitGenerator::RIPPLE);
+      gait_.setType(GaitGenerator::RIPPLE);
   }
 
-  void shiftLegsPos(BodyKinematics::LegsPosition& new_lp, double dt)
+  void shiftLegsStance(BodyKinematics::LegsStance& new_ls, double dt)
   {
-    for (std::size_t l = 0; l != new_lp.size(); ++l)
+    for (std::size_t l = 0; l != new_ls.size(); ++l)
     {
       LegKinematics::LegPos delta(dt * legs_velocity_.velocities[l].x,
                                   dt * legs_velocity_.velocities[l].y,
                                   dt * legs_velocity_.velocities[l].z);
-      new_lp[l] = new_lp[l] + delta;
+      new_ls[l].pos = new_ls[l].pos + delta;
     }
   }
 
@@ -197,17 +188,15 @@ private:
     new_st.position = new_st.position + delta;
   }
 
-  bool createJntTraj(const BodyKinematics::LegsPosition& lp,
-                     const BodyKinematics::BodyPose& bp,
-                     const BodyKinematics::LegsYaw& ly,
-                     double dur,
+  bool createJntTraj(const BodyKinematics::LegsStance& ls,
+                     const BodyKinematics::BodyPose& bp, double dur,
                      trajectory_msgs::JointTrajectory& traj)
   {
     trajectory_msgs::JointTrajectoryPoint traj_point;
 
     try
     {
-      body_.calculateJntAngles(bp, lp, ly, traj_point);
+      body_.calculateJntAngles(bp, ls, traj_point);
     }
     catch (std::logic_error e)
     {
@@ -309,10 +298,9 @@ private:
   ros::Time last_gait_or_legs_command_time_;
   ros::Time last_body_command_time_;
 
-  BodyKinematics::LegsPosition curr_legs_pos_;
+  BodyKinematics::LegsStance curr_legs_stance_;
   BodyKinematics::BodyPose curr_body_pose_;
   urdf::Pose curr_travel_state_;
-  BodyKinematics::LegsYaw curr_legs_yaw_;
 
   // use for visualisation
   tf::TransformBroadcaster tf_br_;
