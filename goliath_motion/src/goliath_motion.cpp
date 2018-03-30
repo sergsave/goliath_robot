@@ -40,14 +40,14 @@ public:
                        << endl);
       exit(-1);
     }
-
+#warning "create this objects dynamicly"
     body_ = BodyKinematics(model);
     gait_ = GaitGenerator(body_);
     curr_legs_stance_ = body_.getDefaultLegsStance();
 
     // create public's publisher and subscriber
 
-    gait_vel_sub_ = nh_.subscribe("cmd_vel", SUB_QUEUE_SZ,
+    gait_vel_sub_ = nh_.subscribe("gait_cmd_vel", SUB_QUEUE_SZ,
                                   &GoliathMotion::gaitVelCallback, this);
 
     body_vel_sub_ = nh_.subscribe("body_cmd_vel", SUB_QUEUE_SZ,
@@ -76,8 +76,7 @@ public:
   }
 
 private:
-
-  void updateAndMove ()
+  void updateAndMove()
   {
     BodyKinematics::LegsStance new_legs_stance = curr_legs_stance_;
     BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
@@ -104,17 +103,18 @@ private:
       ros::Duration(MOVE_TIME_STEP).sleep();
   }
 
-  void resetVelocities ()
+  void resetVelocities()
   {
     if (ros::Time::now() - last_gait_or_legs_command_time_ >
-        ros::Duration(MOVE_TIME))
+        ros::Duration(VEL_RESET_TIMEOUT))
     {
       // set vel to zero
       legs_velocity_ = goliath_msgs::LegsVel();
       gait_velocity_ = geometry_msgs::Twist();
     }
 
-    if (ros::Time::now() - last_body_command_time_ > ros::Duration(MOVE_TIME))
+    if (ros::Time::now() - last_body_command_time_ >
+        ros::Duration(VEL_RESET_TIMEOUT))
     {
       // set vel to zero
       body_velocity_ = geometry_msgs::Twist();
@@ -277,7 +277,7 @@ private:
   static const int SUB_QUEUE_SZ = 10;
   static const int JNT_TRAJ_QUEUE_SZ = 10;
   static const int TF_NUMBERS_PER_STEP = 5;
-  static const double MOVE_TIME_STEP, MOVE_TIME;
+  static const double MOVE_TIME_STEP, VEL_RESET_TIMEOUT;
 
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
@@ -307,7 +307,7 @@ private:
 };
 
 const double GoliathMotion::MOVE_TIME_STEP = 0.1;
-const double GoliathMotion::MOVE_TIME = 0.5;
+const double GoliathMotion::VEL_RESET_TIMEOUT = 0.5;
 
 int main(int argc, char** argv)
 {

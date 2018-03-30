@@ -2,11 +2,9 @@
 #include <termios.h> //termios, TCSANOW, ECHO, ICANON
 #include <unistd.h>  //STDIN_FILENO
 #include "ros/ros.h"
-#include "goliath_msgs/LegsPosition.h"
-#include "goliath_msgs/BodyPose.h"
-#include "geometry_msgs/Point32.h"
-#include <iomanip>
-#include <cmath>
+#include "geometry_msgs/Twist.h"
+#include "goliath_msgs/LegsVel.h"
+#include "goliath_msgs/MotionCmd.h"
 using std::endl;
 
 // class contains instruments for remote control Goliath robot.
@@ -14,27 +12,20 @@ using std::endl;
 class TeleopKey
 {
 public:
-  TeleopKey(ros::NodeHandle node) : n_(node), mode_(LEGS_MODE), ready_to_pub_(false)
+  TeleopKey(ros::NodeHandle node)
+      : nh_(node), mode_(TRIPOD_MODE), single_leg_number_(0)
   {
     // init publishers
-    legs_pos_pub_ = n_.advertise<goliath_msgs::LegsPosition>("legs_position",
-                                                             LEGS_POS_QUEUE_SZ);
-    body_pose_pub_ =
-        n_.advertise<goliath_msgs::BodyPose>("body_pose", BODY_POSE_QUEUE_SZ);
+    legs_vel_pub_ =
+        nh_.advertise<goliath_msgs::LegsVel>("legs_cmd_vel", PUB_QUEUE_SZ);
+    body_vel_pub_ =
+        nh_.advertise<geometry_msgs::Twist>("body_cmd_vel", PUB_QUEUE_SZ);
+    gait_vel_pub_ =
+        nh_.advertise<geometry_msgs::Twist>("gait_cmd_vel", PUB_QUEUE_SZ);
+    motion_cmd_pub_ =
+        nh_.advertise<goliath_msgs::MotionCmd>("motion_cmd", PUB_QUEUE_SZ);
 
-    setLegsPosToDefault();
-    setBodyPoseToDefault();
-
-    ROS_INFO_STREAM(
-        endl
-        << "Goliath keyboard teleop." << endl
-        << "Use keys 'b' and 'l' for select mode: body/legs." << endl
-        << "In body and legs modes use arrows for XY transfer, '+' and '-' for "
-           "Z transfer." << endl
-        << "In body mode use 's','w','a','d','r','f' for RPY rotation." << endl
-        << "In legs mode use keys '0'..'5' for leg's choice." << endl
-        << "In all modes use 'o' for reset parameters." << endl
-        << "Legs mode." << endl);
+    ROS_INFO_STREAM("Place for description!");
     switchConsoleBuffState(false);
   }
 
@@ -42,190 +33,267 @@ public:
 
   void spin()
   {
-    static const int freq = 100;
-    static int counter = 0;
-    ros::Rate loop_rate(freq);
+    ros::Rate loop_rate(RATE_VAL);
 
     while (ros::ok())
     {
       keyboardPoll();
-      if (++counter > freq / PUBLISH_FREQ)
-      {
-        counter = 0;
-        if (ready_to_pub_)
-        {
-          publishTeleop();
-          ready_to_pub_ = false;
-        }
-      }
       loop_rate.sleep();
       ros::spinOnce();
     }
   }
 
 private:
-  // iteration of Pose, when press the key
-  static const double LEG_XYZ_STEP, BODY_RPY_STEP, BODY_XYZ_STEP;
-  static const int MAX_LEG_NUMB = 6;
-  static const int PUBLISH_FREQ = 4;
+  struct Speed
+  {
+    double linear;
+    double angular;
+  };
+
+  static const std::size_t MAX_LEG_NUMBER = 6;
+  static const int RATE_VAL = 50;
+  static const Speed SINGLE_LEG_SPEED;
+  static const Speed TRIPOD_SPEED;
+  static const Speed WAVE_SPEED;
+  static const Speed RIPPLE_SPEED;
+  static const Speed BODY_SPEED;
 
   enum QueueSize
   {
-    LEGS_POS_QUEUE_SZ = 50,
-    BODY_POSE_QUEUE_SZ = 50
+    PUB_QUEUE_SZ = 10
   };
 
   enum TeleopMode
   {
-    LEGS_MODE,
-    BODY_MODE
+    SINGLE_LEG_MODE,
+    TRIPOD_MODE,
+    WAVE_MODE,
+    RIPPLE_MODE
   };
 
   void keyboardPoll()
   {
-    bool is_changed = true;
+    geometry_msgs::Twist gait_vel, body_vel;
+    goliath_msgs::LegsVel legs_vel;
+
+    bool ready_to_pub_leg = false;
+    bool ready_to_pub_body = false;
+    bool ready_to_pub_gait = false;
+    bool ready_to_pub_cmd = false;
     int c;
+
+    Speed walk_speed;
+    if (mode_ == TRIPOD_MODE)
+      walk_speed = TRIPOD_SPEED;
+    if (mode_ == WAVE_MODE)
+      walk_speed = WAVE_SPEED;
+    if (mode_ == RIPPLE_MODE)
+      walk_speed = RIPPLE_SPEED;
 
     // use low-level function getchar (cin doesn't work with unbuffered input)
     switch (c = getchar())
     {
-    case 'l':
-      mode_ = LEGS_MODE;
-      ROS_INFO_STREAM("Legs mode" << endl);
-      setLegsPosToDefault();
-      setBodyPoseToDefault();
-      break;
-    case 'b':
-      mode_ = BODY_MODE;
-      ROS_INFO_STREAM("Body mode" << endl);
-      setLegsPosToDefault();
-      setBodyPoseToDefault();
-      break;
-    case 68: // left arrow
-      if (mode_ == LEGS_MODE)
-        legs_pos_.position_of_legs[curr_leg_numb_].y += LEG_XYZ_STEP;
-      else
-        body_pose_.position.y += BODY_XYZ_STEP;
-      break;
-    case 67: // right arrow
-      if (mode_ == LEGS_MODE)
-        legs_pos_.position_of_legs[curr_leg_numb_].y -= LEG_XYZ_STEP;
-      else
-        body_pose_.position.y -= BODY_XYZ_STEP;
-      break;
-    case 65: // up arrow
-      if (mode_ == LEGS_MODE)
-        legs_pos_.position_of_legs[curr_leg_numb_].x += LEG_XYZ_STEP;
-      else
-        body_pose_.position.x += BODY_XYZ_STEP;
-      break;
-    case 66: // down arrow
-      if (mode_ == LEGS_MODE)
-        legs_pos_.position_of_legs[curr_leg_numb_].x -= LEG_XYZ_STEP;
-      else
-        body_pose_.position.x -= BODY_XYZ_STEP;
-      break;
-    case '+':
-    case '=':
-      if (mode_ == LEGS_MODE)
-        legs_pos_.position_of_legs[curr_leg_numb_].z += LEG_XYZ_STEP;
-      else
-        body_pose_.position.z += BODY_XYZ_STEP;
-      break;
-    case '-':
-      if (mode_ == LEGS_MODE)
-        legs_pos_.position_of_legs[curr_leg_numb_].z -= LEG_XYZ_STEP;
-      else
-        body_pose_.position.z -= BODY_XYZ_STEP;
-      break;
-    case 'a':
-      if (mode_ == BODY_MODE)
-        body_pose_.roll -= BODY_RPY_STEP;
-      else
-        is_changed = false;
-      break;
-    case 'd':
-      if (mode_ == BODY_MODE)
-        body_pose_.roll += BODY_RPY_STEP;
-      else
-        is_changed = false;
-      break;
-    case 's':
-      if (mode_ == BODY_MODE)
-        body_pose_.pitch -= BODY_RPY_STEP;
-      else
-        is_changed = false;
-      break;
     case 'w':
-      if (mode_ == BODY_MODE)
-        body_pose_.pitch += BODY_RPY_STEP;
+    case 'W':
+      if (mode_ != SINGLE_LEG_MODE)
+      {
+        gait_vel.linear.x = (c == 'W' ? 2 : 1) * walk_speed.linear;
+        ready_to_pub_gait = true;
+      }
       else
-        is_changed = false;
+      {
+        legs_vel.velocities[single_leg_number_].x =
+            (c == 'W' ? 2 : 1) * SINGLE_LEG_SPEED.linear;
+        ready_to_pub_leg = true;
+      }
+
       break;
-    case 'r':
-      if (mode_ == BODY_MODE)
-        body_pose_.yaw -= BODY_RPY_STEP;
+
+    case 's':
+    case 'S':
+      if (mode_ != SINGLE_LEG_MODE)
+      {
+        gait_vel.linear.x = (c == 'S' ? 2 : 1) * -walk_speed.linear;
+        ready_to_pub_gait = true;
+      }
       else
-        is_changed = false;
+      {
+        legs_vel.velocities[single_leg_number_].x =
+            (c == 'S' ? 2 : 1) * -SINGLE_LEG_SPEED.linear;
+        ready_to_pub_leg = true;
+      }
       break;
-    case 'f':
-      if (mode_ == BODY_MODE)
-        body_pose_.yaw += BODY_RPY_STEP;
+
+    case 'd':
+    case 'D':
+      if (mode_ != SINGLE_LEG_MODE)
+      {
+        gait_vel.linear.y = (c == 'D' ? 2 : 1) * -walk_speed.linear;
+        ready_to_pub_gait = true;
+      }
       else
-        is_changed = false;
+      {
+        legs_vel.velocities[single_leg_number_].y =
+            (c == 'D' ? 2 : 1) * -SINGLE_LEG_SPEED.linear;
+        ready_to_pub_leg = true;
+      }
       break;
+
+    case 'a':
+    case 'A':
+      if (mode_ != SINGLE_LEG_MODE)
+      {
+        gait_vel.linear.y = (c == 'A' ? 2 : 1) * walk_speed.linear;
+        ready_to_pub_gait = true;
+      }
+      else
+      {
+        legs_vel.velocities[single_leg_number_].y =
+            (c == 'A' ? 2 : 1) * SINGLE_LEG_SPEED.linear;
+        ready_to_pub_leg = true;
+      }
+      break;
+
+    case 'q':
+    case 'Q':
+      if (mode_ != SINGLE_LEG_MODE)
+      {
+        gait_vel.angular.z = (c == 'Q' ? 2 : 1) * walk_speed.angular;
+        ready_to_pub_gait = true;
+      }
+      else
+      {
+        legs_vel.velocities[single_leg_number_].z =
+            (c == 'Q' ? 2 : 1) * SINGLE_LEG_SPEED.linear;
+        ready_to_pub_leg = true;
+      }
+      break;
+
+    case 'e':
+    case 'E':
+      if (mode_ != SINGLE_LEG_MODE)
+      {
+        gait_vel.angular.z = (c == 'E' ? 2 : 1) * -walk_speed.angular;
+        ready_to_pub_gait = true;
+      }
+      else
+      {
+        legs_vel.velocities[single_leg_number_].z =
+            (c == 'E' ? 2 : 1) * -SINGLE_LEG_SPEED.linear;
+        ready_to_pub_leg = true;
+      }
+      break;
+
+    case '`':
+      mode_ = SINGLE_LEG_MODE;
+      single_leg_number_ = 0;
+      legs_vel.velocities[single_leg_number_].z = SINGLE_LEG_SPEED.linear / 5;
+      ready_to_pub_leg = true;
+      break;
+
+    case '1':
+      mode_ = TRIPOD_MODE;
+      ready_to_pub_cmd = true;
+      break;
+
+    case '2':
+      mode_ = WAVE_MODE;
+      ready_to_pub_cmd = true;
+      break;
+
+    case '3':
+      mode_ = RIPPLE_MODE;
+      ready_to_pub_cmd = true;
+      break;
+
+    case '\t':
+      if (mode_ == SINGLE_LEG_MODE)
+      {
+        if (single_leg_number_++ == MAX_LEG_NUMBER - 1)
+          single_leg_number_ = 0;
+
+        legs_vel.velocities[single_leg_number_].z = SINGLE_LEG_SPEED.linear / 5;
+        ready_to_pub_leg = true;
+      }
+      break;
+
+    case 'i':
+      body_vel.angular.y = BODY_SPEED.angular;
+      ready_to_pub_body = true;
+      break;
+
+    case 'k':
+      body_vel.angular.y = -BODY_SPEED.angular;
+      ready_to_pub_body = true;
+      break;
+
+    case 'l':
+      body_vel.angular.x = BODY_SPEED.angular;
+      ready_to_pub_body = true;
+      break;
+
+    case 'j':
+      body_vel.angular.x = -BODY_SPEED.angular;
+      ready_to_pub_body = true;
+      break;
+
+    case 'u':
+      body_vel.angular.z = BODY_SPEED.angular;
+      ready_to_pub_body = true;
+      break;
+
     case 'o':
-      if (mode_ == LEGS_MODE)
-      {
-        const double koef = 0.66;
-
-        if (fabs(legs_pos_.position_of_legs[curr_leg_numb_].x *= koef) <
-            LEG_XYZ_STEP)
-          legs_pos_.position_of_legs[curr_leg_numb_].x = 0;
-
-        if (fabs(legs_pos_.position_of_legs[curr_leg_numb_].y *= koef) <
-            LEG_XYZ_STEP)
-          legs_pos_.position_of_legs[curr_leg_numb_].y = 0;
-
-        if (fabs(legs_pos_.position_of_legs[curr_leg_numb_].z *= koef) <
-            LEG_XYZ_STEP)
-          legs_pos_.position_of_legs[curr_leg_numb_].z = 0;
-      }
-      else
-        setBodyPoseToDefault();
+      body_vel.angular.z = -BODY_SPEED.angular;
+      ready_to_pub_body = true;
       break;
+
+    case 'I':
+      body_vel.linear.x = BODY_SPEED.linear;
+      ready_to_pub_body = true;
+      break;
+
+    case 'K':
+      body_vel.linear.x = -BODY_SPEED.linear;
+      ready_to_pub_body = true;
+      break;
+
+    case 'L':
+      body_vel.linear.y = BODY_SPEED.linear;
+      ready_to_pub_body = true;
+      break;
+
+    case 'J':
+      body_vel.linear.y = -BODY_SPEED.linear;
+      ready_to_pub_body = true;
+      break;
+
+    case 'U':
+      body_vel.linear.z = BODY_SPEED.linear;
+      ready_to_pub_body = true;
+      break;
+
+    case 'O':
+      body_vel.linear.z = -BODY_SPEED.linear;
+      ready_to_pub_body = true;
+      break;
+
     default:
-      // change leg's number if digit is pressed
-      if (c >= '0' && c < '0' + MAX_LEG_NUMB)
-      {
-        curr_leg_numb_ = c - '0';
-      }
-      else
-        is_changed = false;
+
       break;
     }
 
-    if (is_changed)
-      ready_to_pub_ = true;
-  }
-
-  void publishTeleop()
-  {
-    std::streamsize prec = std::cout.precision();
-    std::cout << std::setprecision(4);
-    if (mode_ == BODY_MODE)
+    if (ready_to_pub_gait)
+      gait_vel_pub_.publish(gait_vel);
+    if (ready_to_pub_body)
+      body_vel_pub_.publish(body_vel);
+    if (ready_to_pub_cmd)
     {
-      ROS_INFO_STREAM(endl
-                      << body_pose_);
-      body_pose_pub_.publish(body_pose_);
+      goliath_msgs::MotionCmd msg;
+      msg.type = mode_;
+      motion_cmd_pub_.publish(msg);
     }
-    else if (mode_ == LEGS_MODE)
-    {
-      ROS_INFO_STREAM(endl
-                      << legs_pos_);
-      legs_pos_pub_.publish(legs_pos_);
-    }
-    std::cout << std::setprecision(prec);
+    if (ready_to_pub_leg)
+      legs_vel_pub_.publish(legs_vel);
   }
 
   // disable or enable buffering input
@@ -258,32 +326,21 @@ private:
       tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
   }
 
-  void setBodyPoseToDefault()
-  {
-    // init body position
-    body_pose_.roll = body_pose_.pitch = body_pose_.yaw = 0;
-    body_pose_.position.x = body_pose_.position.y = body_pose_.position.z = 0;
-  }
+  ros::NodeHandle nh_;
+  ros::Publisher legs_vel_pub_;
+  ros::Publisher body_vel_pub_;
+  ros::Publisher gait_vel_pub_;
+  ros::Publisher motion_cmd_pub_;
 
-  void setLegsPosToDefault()
-  {
-    for (auto& elem : legs_pos_.position_of_legs)
-      elem.x = elem.y = elem.z = 0;
-  }
-
-  ros::NodeHandle n_;
-  ros::Publisher body_pose_pub_;
-  ros::Publisher legs_pos_pub_;
-  goliath_msgs::LegsPosition legs_pos_;
-  goliath_msgs::BodyPose body_pose_;
   TeleopMode mode_;
-  std::size_t curr_leg_numb_;
-  bool ready_to_pub_;
+  std::size_t single_leg_number_;
 };
 
-const double TeleopKey::LEG_XYZ_STEP = 0.003;
-const double TeleopKey::BODY_RPY_STEP = 3.1416 / 300.0;
-const double TeleopKey::BODY_XYZ_STEP = 0.003;
+const TeleopKey::Speed TeleopKey::SINGLE_LEG_SPEED{0.05, 0};
+const TeleopKey::Speed TeleopKey::TRIPOD_SPEED{0.06, 0.25};
+const TeleopKey::Speed TeleopKey::WAVE_SPEED{0.015, 0.1};
+const TeleopKey::Speed TeleopKey::RIPPLE_SPEED{0.035, 0.2};
+const TeleopKey::Speed TeleopKey::BODY_SPEED{0.04, 0.35};
 
 int main(int argc, char* argv[])
 {
