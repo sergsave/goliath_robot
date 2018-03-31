@@ -19,8 +19,12 @@
 using std::string;
 using std::endl;
 
-// this class contain motion control mechanism
+// This class contain motion control mechanism
 // for Goliath - 6 leg's insect's like robot.
+// Publish in topic: command (for motor driver).
+// Subscribe on topics: legs_cmd_vel, body_cmd_vel,
+// gait_cmd_vel (for motion control) and motion_cmd
+// for select gait types.
 class GoliathMotion
 {
 public:
@@ -46,7 +50,6 @@ public:
     curr_legs_stance_ = body_.getDefaultLegsStance();
 
     // create public's publisher and subscriber
-
     gait_vel_sub_ = nh_.subscribe("gait_cmd_vel", SUB_QUEUE_SZ,
                                   &GoliathMotion::gaitVelCallback, this);
 
@@ -56,7 +59,7 @@ public:
     legs_vel_sub_ = nh_.subscribe("legs_cmd_vel", SUB_QUEUE_SZ,
                                   &GoliathMotion::legsVelCallback, this);
 
-    // for manual set use:
+    // for manual set use in command line:
     // rostopic pub -1 /motion_cmd goliath_msgs/MotionCmd -- '2'
     cmd_sub_ = nh_.subscribe("motion_cmd", SUB_QUEUE_SZ,
                              &GoliathMotion::motionCmdCallback, this);
@@ -65,6 +68,7 @@ public:
         "command", JNT_TRAJ_QUEUE_SZ);
   }
 
+  // main loop method
   void spin(void)
   {
     while (ros::ok())
@@ -82,17 +86,22 @@ private:
     BodyKinematics::BodyPose new_body_pose = curr_body_pose_;
     urdf::Pose new_travel_state = curr_travel_state_;
 
+    // shift the limbs of the robot based on speed: s = v * t
     shiftLegsStance(new_legs_stance, MOVE_TIME_STEP);
     shiftBodyPose(new_body_pose, MOVE_TIME_STEP);
     shiftTravelState(new_travel_state, MOVE_TIME_STEP);
 
+    // do a piece of step
     gait_.accretion(gait_velocity_, new_legs_stance, MOVE_TIME_STEP);
 
     trajectory_msgs::JointTrajectory traj;
-
+    // let's try to create a trajectory for robot's limbs.
+    // if all angles is OK, publish this trajectory to motor controller.
+    // if there are a bad angles, just wait.
     if (createJntTraj(new_legs_stance, new_body_pose, MOVE_TIME_STEP, traj))
     {
       jnt_traj_pub_.publish(traj);
+      // Update a position of a robot in space
       waitAndPublishTf(MOVE_TIME_STEP, curr_body_pose_, curr_travel_state_);
 
       curr_legs_stance_ = new_legs_stance;
@@ -103,6 +112,7 @@ private:
       ros::Duration(MOVE_TIME_STEP).sleep();
   }
 
+  // stop the robot if there are no commands
   void resetVelocities()
   {
     if (ros::Time::now() - last_gait_or_legs_command_time_ >
@@ -121,6 +131,8 @@ private:
     }
   }
 
+  // all callbacks are automatically called in spin() method
+  // with call of SpinOnce()
   void gaitVelCallback(const geometry_msgs::Twist& tw)
   {
     gait_velocity_ = tw;
@@ -183,6 +195,7 @@ private:
     urdf::Vector3 delta(dt * gait_velocity_.linear.x,
                         dt * gait_velocity_.linear.y, 0);
 
+    // rotate velocity vector!
     delta = new_st.rotation * delta;
 
     new_st.position = new_st.position + delta;
@@ -213,6 +226,7 @@ private:
     return true;
   }
 
+  // warning! this function is blocking (on time value)
   void waitAndPublishTf(double time, BodyKinematics::BodyPose pose,
                         urdf::Pose travel_st)
   {
@@ -228,20 +242,22 @@ private:
     }
   }
 
+  // publish TF, is used for visualization.
   void publishTransformToBase(const BodyKinematics::BodyPose& pose)
   {
     tf::Transform transform;
-    transform.setOrigin(tf::Vector3(0, 0, 0));
+    tf::Quaternion q;
 
     double roll, pitch, yaw;
     pose.rotation.getRPY(roll, pitch, yaw);
 
-    tf::Quaternion q;
+    transform.setOrigin(tf::Vector3(0, 0, 0));
     q.setRPY(-roll, -pitch, -yaw);
     transform.setRotation(q);
 
     tf_br_.sendTransform(tf::StampedTransform(
         transform, ros::Time::now(), "body_link", "center_of_rotation"));
+
     q.setRPY(0, 0, 0);
     transform.setRotation(q);
     transform.setOrigin(tf::Vector3(-pose.position.x, -pose.position.y,
@@ -250,6 +266,7 @@ private:
                                               "center_of_rotation", "base"));
   }
 
+  // publish TF, is used for visualization.
   void publishTransformToWorld(const urdf::Pose& travel_st)
   {
     tf::Transform transform;
@@ -295,14 +312,16 @@ private:
   geometry_msgs::Twist body_velocity_;
   goliath_msgs::LegsVel legs_velocity_;
 
+  // used only for velocities reset
   ros::Time last_gait_or_legs_command_time_;
   ros::Time last_body_command_time_;
 
+  // current state of robot
   BodyKinematics::LegsStance curr_legs_stance_;
   BodyKinematics::BodyPose curr_body_pose_;
   urdf::Pose curr_travel_state_;
 
-  // use for visualisation
+  // used for visualisation
   tf::TransformBroadcaster tf_br_;
 };
 

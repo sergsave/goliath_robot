@@ -7,8 +7,11 @@
 #include "goliath_msgs/MotionCmd.h"
 using std::endl;
 
-// class contains instruments for remote control Goliath robot.
-// it use a keyboard for send BodyPose and LegsPosition message to topic
+// Class contains instruments for remote control Goliath robot
+// with help of keyboard.
+// It uses a keyboard for publish message to topic
+// legs_cmd_vel, body_cmd_vel, gait_cmd_vel, motion_cmd
+// for GoliathMotion node
 class TeleopKey
 {
 public:
@@ -26,11 +29,17 @@ public:
         nh_.advertise<goliath_msgs::MotionCmd>("motion_cmd", PUB_QUEUE_SZ);
 
     printInstruction();
+    // disable buffering
     switchConsoleBuffState(false);
   }
 
-  ~TeleopKey() { switchConsoleBuffState(true); }
+  ~TeleopKey()
+  {
+    // just enable buffering
+    switchConsoleBuffState(true);
+  }
 
+  // main loop - button processing
   void spin()
   {
     ros::Rate loop_rate(RATE_VAL);
@@ -44,22 +53,24 @@ public:
   }
 
 private:
+  enum QueueSize
+  {
+    PUB_QUEUE_SZ = 10
+  };
+
   enum TeleopMode
   {
     SINGLE_LEG_MODE,
     TRIPOD_MODE,
     WAVE_MODE,
     RIPPLE_MODE,
-    DUMMY_MODE
+    NUMB_OF_MODES
   };
 
-  enum QueueSize
-  {
-    PUB_QUEUE_SZ = 10
-  };
-
+  // Just letter on keyboard
   typedef char KeyCode;
-  // list of KEYCODES
+
+  // Group of keys for direction control
   struct KeyJoystick
   {
     KeyCode forw;
@@ -85,14 +96,16 @@ private:
   static const Speed RIPPLE_SPEED;
   static const Speed BODY_SPEED;
 
+  // list of buttons used for control
   static const KeyJoystick KEY_JOY_MOVE;
   static const KeyJoystick KEY_JOY_MOVE_FAST;
   static const KeyJoystick KEY_JOY_ROT_BODY;
   static const KeyJoystick KEY_JOY_TR_BODY;
-  static const std::array<KeyCode, DUMMY_MODE> KEYCODES_MODE;
+  static const std::array<KeyCode, NUMB_OF_MODES> KEYCODES_MODE;
   static const KeyCode KEYCODE_LEG_SEL;
   static const KeyCode KEYCODE_HELP;
 
+  // It is very convenient to write instructions with this method
   friend std::ostream& operator<<(std::ostream& os, const KeyJoystick& kj)
   {
     std::string sp("  ");
@@ -103,23 +116,24 @@ private:
 
   void printInstruction()
   {
-    std::string mode_msg;
-    static const std::array<std::string, DUMMY_MODE> mode_names{
+    std::string mode_info;
+    static const std::array<std::string, NUMB_OF_MODES> mode_names{
         "Single leg mode", "Tripod walking mode", "Wave walking mode",
         "Ripple walking mode"};
 
-    std::string leg_sel_keycode(1, KEYCODE_LEG_SEL); // KEYCODE_LEG_SEL;
+    // Workaround! '\t' not displayed in console!
+    std::string leg_sel_keycode(1, KEYCODE_LEG_SEL);
     if (KEYCODE_LEG_SEL == '\t')
       leg_sel_keycode = "Tab";
 
-    for (std::size_t m = SINGLE_LEG_MODE; m != DUMMY_MODE; m++)
-      mode_msg += "  " + mode_names[m] + " - " + KEYCODES_MODE[m] + '\n';
+    for (std::size_t m = SINGLE_LEG_MODE; m != NUMB_OF_MODES; m++)
+      mode_info += "  " + mode_names[m] + " - " + KEYCODES_MODE[m] + '\n';
 
     ROS_INFO_STREAM(endl
                     << "Keyboard teleop controller for Goliath robot." << endl
                     << endl
                     << "To select a mode, use keys:" << endl
-                    << mode_msg << endl
+                    << mode_info << endl
                     << "For legs and movement control:" << endl
                     << KEY_JOY_MOVE << endl
                     << "For faster speed: " << endl
@@ -159,6 +173,9 @@ private:
     return ret;
   }
 
+  // if you want update leg_vel, use dummy for gait_vel
+  // and vice versa.
+  // return false, if was did not press the control key
   bool updateGaitOrLegVel(KeyCode kc, geometry_msgs::Twist& gait_vel,
                           geometry_msgs::Vector3& leg_vel, Speed speed)
   {
@@ -211,6 +228,7 @@ private:
     return true;
   }
 
+  // return false, if was did not press the control key
   bool updateBodyVel(KeyCode kc, geometry_msgs::Twist& body_vel)
   {
     double koef = 1;
@@ -251,9 +269,10 @@ private:
     return true;
   }
 
+  // return false, if was did not press the mode change key
   bool updateMode(KeyCode kc, TeleopMode& mode)
   {
-    for (std::size_t m = SINGLE_LEG_MODE; m != DUMMY_MODE; ++m)
+    for (std::size_t m = SINGLE_LEG_MODE; m != NUMB_OF_MODES; ++m)
     {
       if (kc == KEYCODES_MODE[m])
       {
@@ -273,6 +292,7 @@ private:
     // use low-level function getchar (cin doesn't work with unbuffered input)
     KeyCode kc = getchar();
 
+    // change leg number in cycle
     if (kc == KEYCODE_LEG_SEL && mode_ == SINGLE_LEG_MODE)
     {
       if (single_leg_number_++ == MAX_LEG_NUMBER - 1)
@@ -308,7 +328,7 @@ private:
         gait_vel_pub_.publish(gait_vel);
     }
 
-    if(kc == KEYCODE_HELP)
+    if (kc == KEYCODE_HELP)
       printInstruction();
   }
 
@@ -352,12 +372,14 @@ private:
   std::size_t single_leg_number_;
 };
 
+// You can change default speeds here
 const TeleopKey::Speed TeleopKey::SINGLE_LEG_SPEED{0.05, 0};
 const TeleopKey::Speed TeleopKey::TRIPOD_SPEED{0.06, 0.25};
 const TeleopKey::Speed TeleopKey::WAVE_SPEED{0.015, 0.1};
 const TeleopKey::Speed TeleopKey::RIPPLE_SPEED{0.035, 0.2};
 const TeleopKey::Speed TeleopKey::BODY_SPEED{0.04, 0.35};
 
+// You can remap buttons here
 const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_MOVE{'w', 's', 'a',
                                                      'd', 'q', 'e'};
 const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_MOVE_FAST{'W', 'S', 'A',
@@ -366,7 +388,7 @@ const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_ROT_BODY{'i', 'k', 'j',
                                                          'l', 'u', 'o'};
 const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_TR_BODY{'I', 'K', 'J',
                                                         'L', 'U', 'O'};
-const std::array<TeleopKey::KeyCode, TeleopKey::DUMMY_MODE>
+const std::array<TeleopKey::KeyCode, TeleopKey::NUMB_OF_MODES>
     TeleopKey::KEYCODES_MODE{{'`', '1', '2', '3'}};
 const TeleopKey::KeyCode TeleopKey::KEYCODE_LEG_SEL = '\t';
 const TeleopKey::KeyCode TeleopKey::KEYCODE_HELP = 'h';

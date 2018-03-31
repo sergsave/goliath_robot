@@ -3,6 +3,9 @@
 #include "trajectory_msgs/JointTrajectory.h"
 #include <string>
 
+// This little node just transform JointTrajectory messages
+// to JointState message. JointState messages can be used
+// for visualization.
 class ServoEmulator
 {
 public:
@@ -35,6 +38,7 @@ private:
       std::size_t itterations_numb = p.time_from_start.toSec() * RATE_VAL;
       std::vector<double> delta_pos;
 
+      //calculate increment over one period of each joint
       for (std::size_t j = 0; j != p.positions.size(); j++)
       {
         delta_pos.push_back(
@@ -42,6 +46,7 @@ private:
             itterations_numb);
       }
 
+      //increment and publish
       for (std::size_t i = 1; i <= itterations_numb; i++)
       {
         loop_rate.sleep();

@@ -13,7 +13,7 @@
 #include "leg_kinematics.h"
 
 // class describes the insect-like six leg's robot
-// class have instruments for calculating inverse and forward
+// class have methods for calculating inverse and forward
 // kinematics
 class BodyKinematics
 {
@@ -45,31 +45,42 @@ public:
   typedef std::array<StanceOfLeg, NUMBER_OF_LEGS> LegsStance;
   typedef urdf::Pose BodyPose;
 
-  // methods for calculating
+  // convert body pose and legs postitions (relatively legs roots)
+  // in joint angles
+  // this method put 18 angles in argument, so be careful with
+  // non empty JointTrajectoryPoint
   void calculateJntAngles(const BodyPose&,
                           trajectory_msgs::JointTrajectoryPoint&);
   void calculateJntAngles(const BodyPose&, const LegsStance&,
                           trajectory_msgs::JointTrajectoryPoint&);
 
+  //this method just put 18 names in argument
+  //in the same order as calculateJntAngles methods
+  //be careful with non empty vectors!
   void getLegsJntName(std::vector<std::string>&);
 
+  // default coordinates of legs ends relatively
+  // legs root
   LegsStance getDefaultLegsStance();
+
+  //from center of the body to ground
   double getClearance();
 
 private:
+  static const std::array<std::string, NUMBER_OF_LEGS> LEG_NAMES;
+  static const std::string LEG_ROOT_JNT_BASE_NAME;
+
   typedef std::array<LegKinematics::LegPos, NUMBER_OF_LEGS> LegsPos;
 
   void calculateJntAngles(const LegsPos&,
                           trajectory_msgs::JointTrajectoryPoint&);
 
-  // urdf::Vector3 doesnt have "-" operator
+  // urdf::Vector3 doesnt have "-" operator :(
   urdf::Vector3 invVec(urdf::Vector3 vec)
   {
     return urdf::Vector3(-vec.x, -vec.y, -vec.z);
   }
 
-  static const std::array<std::string, NUMBER_OF_LEGS> LEG_NAMES;
-  static const std::string LEG_ROOT_JNT_BASE_NAME;
   std::array<LegKinematics, NUMBER_OF_LEGS> legs_;
   LegsPos legs_origin_;
 };

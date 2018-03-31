@@ -68,7 +68,7 @@ BodyKinematics::LegsStance BodyKinematics::getDefaultLegsStance()
   return ret;
 }
 
-// calculate angles for controle single leg
+
 void BodyKinematics::calculateJntAngles(
     const LegsPos& legs_pos, trajectory_msgs::JointTrajectoryPoint& jnt)
 {
@@ -82,6 +82,7 @@ void BodyKinematics::calculateJntAngles(
   }
 }
 
+// calculate joint angles with default legs stance
 void BodyKinematics::calculateJntAngles(
     const BodyPose& pose, trajectory_msgs::JointTrajectoryPoint& jnt)
 {
@@ -90,12 +91,12 @@ void BodyKinematics::calculateJntAngles(
   calculateJntAngles(pose, def_l_st, jnt);
 }
 
-// calculate angles for controle body
 void BodyKinematics::calculateJntAngles(
     const BodyPose& body_pose, const LegsStance& legs_st,
     trajectory_msgs::JointTrajectoryPoint& jnt)
 {
   LegsPos fin_positions;
+
   // create rotation matrix for legs, which inverse to body rotation
   urdf::Rotation rotation;
   double roll, pitch, yaw;

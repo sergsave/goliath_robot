@@ -1,6 +1,7 @@
 #include "gait_generator.h"
 
 using std::size_t;
+#warning "maybe dynamicly change height with teleop?"
 const double GaitGenerator::LIFT_HEIGHT = 0.02;
 
 void GaitGenerator::accretion(const geometry_msgs::Twist& vel,
@@ -9,9 +10,12 @@ void GaitGenerator::accretion(const geometry_msgs::Twist& vel,
   if (vel.linear.x == 0 && vel.linear.y == 0 && vel.angular.z == 0)
     return;
 
+  // phase it's a part of cycle. Such as put down leg, or put up.
+  // Magic number 2 : because each leg move forward only two phases
   double time_for_phase = dt * STEP_NUMBERS;
   double time_for_cycle = time_for_phase * (sequence_.size() - 2);
 
+  // calculate distance for leg replacement
   urdf::Pose cycle_delta = calcDelta(vel, time_for_cycle);
   urdf::Pose phase_delta = calcDelta(vel, time_for_phase);
 
@@ -123,6 +127,7 @@ void GaitGenerator::setSequenceToRipple()
   sequence_.push_back(phase);
 }
 
+//Why there is not this method in urdf? :)
 double GaitGenerator::getYaw(const urdf::Pose& pose)
 {
   double roll, pitch, yaw;
@@ -147,6 +152,7 @@ urdf::Pose GaitGenerator::getHalfDelta(const urdf::Pose& delta)
   return ret;
 }
 
+//auxiliary method for putUp, putDown, return methods
 void GaitGenerator::moveLeg(BodyKinematics::StanceOfLeg& state,
                             urdf::Pose delta, double move_koef,
                             double lift_koef)
@@ -158,6 +164,7 @@ void GaitGenerator::moveLeg(BodyKinematics::StanceOfLeg& state,
   state.pos.z += LIFT_HEIGHT * lift_koef;
 }
 
+// methods for move leg in accordance with current gait phase step
 BodyKinematics::StanceOfLeg
 GaitGenerator::putUpLeg(BodyKinematics::StanceOfLeg def_st, urdf::Pose delta,
                         std::size_t step)
