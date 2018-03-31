@@ -5,8 +5,8 @@
   <description>The goliath_simulation package</description>
 
   <license>BSD</license>
-  <author email="sa.savenko92@gmail.com">Sergey Savenko</author>
-  <maintainer email="sa.savenko92@gmail.com">Sergey Savenko</maintainer>
+  <author email="sa.savenko2@gmail.com">Sergey Savenko</author>
+  <maintainer email="sa.savenko2@gmail.com">Sergey Savenko</maintainer>
 
   <buildtool_depend>catkin</buildtool_depend>
 
