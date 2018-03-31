@@ -37,13 +37,39 @@ public:
 
     while (ros::ok())
     {
-      keyboardPoll();
+      keyboardPollAndPublish();
       loop_rate.sleep();
       ros::spinOnce();
     }
   }
 
 private:
+  enum TeleopMode
+  {
+    SINGLE_LEG_MODE,
+    TRIPOD_MODE,
+    WAVE_MODE,
+    RIPPLE_MODE,
+    DUMMY_MODE
+  };
+
+  enum QueueSize
+  {
+    PUB_QUEUE_SZ = 10
+  };
+
+  typedef char KeyCode;
+  // list of KEYCODES
+  struct KeyJoystick
+  {
+    KeyCode forw;
+    KeyCode backw;
+    KeyCode left;
+    KeyCode right;
+    KeyCode turn_l;
+    KeyCode turn_r;
+  };
+
   struct Speed
   {
     double linear;
@@ -52,248 +78,221 @@ private:
 
   static const std::size_t MAX_LEG_NUMBER = 6;
   static const int RATE_VAL = 50;
+
   static const Speed SINGLE_LEG_SPEED;
   static const Speed TRIPOD_SPEED;
   static const Speed WAVE_SPEED;
   static const Speed RIPPLE_SPEED;
   static const Speed BODY_SPEED;
 
-  enum QueueSize
-  {
-    PUB_QUEUE_SZ = 10
-  };
+  static constexpr KeyJoystick KEY_JOY_MOVE{'w', 's', 'a', 'd', 'q', 'e'};
+  static constexpr KeyJoystick KEY_JOY_MOVE_FAST{'W', 'S', 'A', 'D', 'Q', 'E'};
+  static constexpr KeyJoystick KEY_JOY_ROT_BODY{'i', 'k', 'j', 'l', 'u', 'o'};
+  static constexpr KeyJoystick KEY_JOY_TR_BODY{'I', 'K', 'J', 'L', 'U', 'O'};
 
-  enum TeleopMode
-  {
-    SINGLE_LEG_MODE,
-    TRIPOD_MODE,
-    WAVE_MODE,
-    RIPPLE_MODE
-  };
+  static const std::array<KeyCode, DUMMY_MODE> MODE_KEYCODES;
+  static const KeyCode LEG_SEL_KEYCODE = '\t';
 
-  void keyboardPoll()
+  goliath_msgs::MotionCmd createMotionCmdMsg(TeleopMode mode)
+  {
+    goliath_msgs::MotionCmd ret;
+    switch (mode)
+    {
+    case TRIPOD_MODE:
+      ret.type = goliath_msgs::MotionCmd::SELECT_TRIPOD_GAIT;
+      break;
+
+    case WAVE_MODE:
+      ret.type = goliath_msgs::MotionCmd::SELECT_WAVE_GAIT;
+      break;
+
+    case RIPPLE_MODE:
+      ret.type = goliath_msgs::MotionCmd::SELECT_RIPPLE_GAIT;
+      break;
+
+    default:
+      break;
+    }
+    return ret;
+  }
+
+  bool updateGaitOrLegVel(KeyCode kc, geometry_msgs::Twist& gait_vel,
+                          geometry_msgs::Vector3& leg_vel, Speed speed)
+  {
+    bool ret = true;
+    int koef = 1;
+    switch (kc)
+    {
+    case KEY_JOY_MOVE_FAST.forw:
+      koef = 2;
+    case KEY_JOY_MOVE.forw:
+      gait_vel.linear.x = koef * speed.linear;
+      leg_vel.x = koef * speed.linear;
+      break;
+
+    case KEY_JOY_MOVE_FAST.backw:
+      koef = 2;
+    case KEY_JOY_MOVE.backw:
+      gait_vel.linear.x = -koef * speed.linear;
+      leg_vel.x = -koef * speed.linear;
+      break;
+
+    case KEY_JOY_MOVE_FAST.left:
+      koef = 2;
+    case KEY_JOY_MOVE.left:
+      gait_vel.linear.y = koef * speed.linear;
+      leg_vel.y = koef * speed.linear;
+      break;
+
+    case KEY_JOY_MOVE_FAST.right:
+      koef = 2;
+    case KEY_JOY_MOVE.right:
+      gait_vel.linear.y = -koef * speed.linear;
+      leg_vel.y = -koef * speed.linear;
+      break;
+
+    case KEY_JOY_MOVE_FAST.turn_l:
+      koef = 2;
+    case KEY_JOY_MOVE.turn_l:
+      gait_vel.angular.z = koef * speed.angular;
+      leg_vel.z = koef * speed.linear;
+      break;
+
+    case KEY_JOY_MOVE_FAST.turn_r:
+      koef = 2;
+    case KEY_JOY_MOVE.turn_r:
+      gait_vel.angular.z = -koef * speed.angular;
+      leg_vel.z = -koef * speed.linear;
+      break;
+
+    default:
+      if (kc == LEG_SEL_KEYCODE || kc == MODE_KEYCODES[SINGLE_LEG_MODE])
+        leg_vel.z = koef * speed.linear / 5;
+      else
+        ret = false;
+      break;
+    }
+
+    return ret;
+  }
+
+  bool updateBodyVel(KeyCode kc, geometry_msgs::Twist& body_vel)
+  {
+    bool ret = true;
+
+    switch (kc)
+    {
+    case KEY_JOY_TR_BODY.forw:
+      body_vel.linear.x = BODY_SPEED.linear;
+      break;
+
+    case KEY_JOY_TR_BODY.backw:
+      body_vel.linear.x = -BODY_SPEED.linear;
+      break;
+
+    case KEY_JOY_TR_BODY.left:
+      body_vel.linear.y = BODY_SPEED.linear;
+      break;
+
+    case KEY_JOY_TR_BODY.right:
+      body_vel.linear.y = -BODY_SPEED.linear;
+      break;
+
+    case KEY_JOY_TR_BODY.turn_l:
+      body_vel.linear.z = BODY_SPEED.linear;
+      break;
+
+    case KEY_JOY_TR_BODY.turn_r:
+      body_vel.linear.z = -BODY_SPEED.linear;
+      break;
+
+    case KEY_JOY_ROT_BODY.forw:
+      body_vel.angular.y = BODY_SPEED.angular;
+      break;
+
+    case KEY_JOY_ROT_BODY.backw:
+      body_vel.angular.y = -BODY_SPEED.angular;
+      break;
+
+    case KEY_JOY_ROT_BODY.left:
+      body_vel.angular.x = BODY_SPEED.angular;
+      break;
+
+    case KEY_JOY_ROT_BODY.right:
+      body_vel.angular.x = -BODY_SPEED.angular;
+      break;
+
+    case KEY_JOY_ROT_BODY.turn_l:
+      body_vel.angular.z = BODY_SPEED.angular;
+      break;
+
+    case KEY_JOY_ROT_BODY.turn_r:
+      body_vel.angular.z = -BODY_SPEED.angular;
+      break;
+
+    default:
+      ret = false;
+      break;
+    }
+    return ret;
+  }
+
+  bool updateMode(KeyCode kc, TeleopMode& mode)
+  {
+    for (std::size_t m = SINGLE_LEG_MODE; m != DUMMY_MODE; ++m)
+    {
+      if (kc == MODE_KEYCODES[m])
+      {
+        mode = static_cast<TeleopMode>(m);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  void keyboardPollAndPublish()
   {
     geometry_msgs::Twist gait_vel, body_vel;
     goliath_msgs::LegsVel legs_vel;
 
-    bool ready_to_pub_leg = false;
-    bool ready_to_pub_body = false;
-    bool ready_to_pub_gait = false;
-    bool ready_to_pub_cmd = false;
-    int c;
-
-    Speed walk_speed;
-    if (mode_ == TRIPOD_MODE)
-      walk_speed = TRIPOD_SPEED;
-    if (mode_ == WAVE_MODE)
-      walk_speed = WAVE_SPEED;
-    if (mode_ == RIPPLE_MODE)
-      walk_speed = RIPPLE_SPEED;
-
     // use low-level function getchar (cin doesn't work with unbuffered input)
-    switch (c = getchar())
+    KeyCode kc = getchar();
+
+    if (kc == LEG_SEL_KEYCODE && mode_ == SINGLE_LEG_MODE)
     {
-    case 'w':
-    case 'W':
-      if (mode_ != SINGLE_LEG_MODE)
-      {
-        gait_vel.linear.x = (c == 'W' ? 2 : 1) * walk_speed.linear;
-        ready_to_pub_gait = true;
-      }
-      else
-      {
-        legs_vel.velocities[single_leg_number_].x =
-            (c == 'W' ? 2 : 1) * SINGLE_LEG_SPEED.linear;
-        ready_to_pub_leg = true;
-      }
-
-      break;
-
-    case 's':
-    case 'S':
-      if (mode_ != SINGLE_LEG_MODE)
-      {
-        gait_vel.linear.x = (c == 'S' ? 2 : 1) * -walk_speed.linear;
-        ready_to_pub_gait = true;
-      }
-      else
-      {
-        legs_vel.velocities[single_leg_number_].x =
-            (c == 'S' ? 2 : 1) * -SINGLE_LEG_SPEED.linear;
-        ready_to_pub_leg = true;
-      }
-      break;
-
-    case 'd':
-    case 'D':
-      if (mode_ != SINGLE_LEG_MODE)
-      {
-        gait_vel.linear.y = (c == 'D' ? 2 : 1) * -walk_speed.linear;
-        ready_to_pub_gait = true;
-      }
-      else
-      {
-        legs_vel.velocities[single_leg_number_].y =
-            (c == 'D' ? 2 : 1) * -SINGLE_LEG_SPEED.linear;
-        ready_to_pub_leg = true;
-      }
-      break;
-
-    case 'a':
-    case 'A':
-      if (mode_ != SINGLE_LEG_MODE)
-      {
-        gait_vel.linear.y = (c == 'A' ? 2 : 1) * walk_speed.linear;
-        ready_to_pub_gait = true;
-      }
-      else
-      {
-        legs_vel.velocities[single_leg_number_].y =
-            (c == 'A' ? 2 : 1) * SINGLE_LEG_SPEED.linear;
-        ready_to_pub_leg = true;
-      }
-      break;
-
-    case 'q':
-    case 'Q':
-      if (mode_ != SINGLE_LEG_MODE)
-      {
-        gait_vel.angular.z = (c == 'Q' ? 2 : 1) * walk_speed.angular;
-        ready_to_pub_gait = true;
-      }
-      else
-      {
-        legs_vel.velocities[single_leg_number_].z =
-            (c == 'Q' ? 2 : 1) * SINGLE_LEG_SPEED.linear;
-        ready_to_pub_leg = true;
-      }
-      break;
-
-    case 'e':
-    case 'E':
-      if (mode_ != SINGLE_LEG_MODE)
-      {
-        gait_vel.angular.z = (c == 'E' ? 2 : 1) * -walk_speed.angular;
-        ready_to_pub_gait = true;
-      }
-      else
-      {
-        legs_vel.velocities[single_leg_number_].z =
-            (c == 'E' ? 2 : 1) * -SINGLE_LEG_SPEED.linear;
-        ready_to_pub_leg = true;
-      }
-      break;
-
-    case '`':
-      mode_ = SINGLE_LEG_MODE;
-      single_leg_number_ = 0;
-      legs_vel.velocities[single_leg_number_].z = SINGLE_LEG_SPEED.linear / 5;
-      ready_to_pub_leg = true;
-      break;
-
-    case '1':
-      mode_ = TRIPOD_MODE;
-      ready_to_pub_cmd = true;
-      break;
-
-    case '2':
-      mode_ = WAVE_MODE;
-      ready_to_pub_cmd = true;
-      break;
-
-    case '3':
-      mode_ = RIPPLE_MODE;
-      ready_to_pub_cmd = true;
-      break;
-
-    case '\t':
-      if (mode_ == SINGLE_LEG_MODE)
-      {
-        if (single_leg_number_++ == MAX_LEG_NUMBER - 1)
-          single_leg_number_ = 0;
-
-        legs_vel.velocities[single_leg_number_].z = SINGLE_LEG_SPEED.linear / 5;
-        ready_to_pub_leg = true;
-      }
-      break;
-
-    case 'i':
-      body_vel.angular.y = BODY_SPEED.angular;
-      ready_to_pub_body = true;
-      break;
-
-    case 'k':
-      body_vel.angular.y = -BODY_SPEED.angular;
-      ready_to_pub_body = true;
-      break;
-
-    case 'l':
-      body_vel.angular.x = BODY_SPEED.angular;
-      ready_to_pub_body = true;
-      break;
-
-    case 'j':
-      body_vel.angular.x = -BODY_SPEED.angular;
-      ready_to_pub_body = true;
-      break;
-
-    case 'u':
-      body_vel.angular.z = BODY_SPEED.angular;
-      ready_to_pub_body = true;
-      break;
-
-    case 'o':
-      body_vel.angular.z = -BODY_SPEED.angular;
-      ready_to_pub_body = true;
-      break;
-
-    case 'I':
-      body_vel.linear.x = BODY_SPEED.linear;
-      ready_to_pub_body = true;
-      break;
-
-    case 'K':
-      body_vel.linear.x = -BODY_SPEED.linear;
-      ready_to_pub_body = true;
-      break;
-
-    case 'L':
-      body_vel.linear.y = BODY_SPEED.linear;
-      ready_to_pub_body = true;
-      break;
-
-    case 'J':
-      body_vel.linear.y = -BODY_SPEED.linear;
-      ready_to_pub_body = true;
-      break;
-
-    case 'U':
-      body_vel.linear.z = BODY_SPEED.linear;
-      ready_to_pub_body = true;
-      break;
-
-    case 'O':
-      body_vel.linear.z = -BODY_SPEED.linear;
-      ready_to_pub_body = true;
-      break;
-
-    default:
-
-      break;
+      if (single_leg_number_++ == MAX_LEG_NUMBER - 1)
+        single_leg_number_ = 0;
     }
 
-    if (ready_to_pub_gait)
-      gait_vel_pub_.publish(gait_vel);
-    if (ready_to_pub_body)
+    if (updateMode(kc, mode_))
+      motion_cmd_pub_.publish(createMotionCmdMsg(mode_));
+
+    if (updateBodyVel(kc, body_vel))
       body_vel_pub_.publish(body_vel);
-    if (ready_to_pub_cmd)
+
+    if (mode_ == SINGLE_LEG_MODE)
     {
-      goliath_msgs::MotionCmd msg;
-      msg.type = mode_;
-      motion_cmd_pub_.publish(msg);
+      geometry_msgs::Twist dummy;
+      if (updateGaitOrLegVel(kc, dummy, legs_vel.velocities[single_leg_number_],
+                             SINGLE_LEG_SPEED))
+        legs_vel_pub_.publish(legs_vel);
     }
-    if (ready_to_pub_leg)
-      legs_vel_pub_.publish(legs_vel);
+    else
+    {
+      Speed walk_speed;
+
+      if (mode_ == TRIPOD_MODE)
+        walk_speed = TRIPOD_SPEED;
+      if (mode_ == WAVE_MODE)
+        walk_speed = WAVE_SPEED;
+      if (mode_ == RIPPLE_MODE)
+        walk_speed = RIPPLE_SPEED;
+
+      geometry_msgs::Vector3 dummy;
+      if (updateGaitOrLegVel(kc, gait_vel, dummy, walk_speed))
+        gait_vel_pub_.publish(gait_vel);
+    }
   }
 
   // disable or enable buffering input
@@ -341,6 +340,9 @@ const TeleopKey::Speed TeleopKey::TRIPOD_SPEED{0.06, 0.25};
 const TeleopKey::Speed TeleopKey::WAVE_SPEED{0.015, 0.1};
 const TeleopKey::Speed TeleopKey::RIPPLE_SPEED{0.035, 0.2};
 const TeleopKey::Speed TeleopKey::BODY_SPEED{0.04, 0.35};
+
+const std::array<TeleopKey::KeyCode, TeleopKey::DUMMY_MODE>
+    TeleopKey::MODE_KEYCODES{{'`', '1', '2', '3'}};
 
 int main(int argc, char* argv[])
 {
