@@ -1,4 +1,4 @@
-goliath robot
+Goliath robot
 =============
 This repo contain source for ROS powered hexapod robot named Goliath.
 
@@ -33,13 +33,13 @@ Auxiliary stuff for simulation and visualization, such as servo-motors emulator.
 
 **_goliath_teleop_**
 
-Ыends commands based on keystrokes on the keyboard.
+Sends commands based on keystrokes on the keyboard.
 
 ## Media
 
 Robot 3d model sreen
 
-[![ScreenShot](https://pastenow.ru/3d7bf86f18e3a6d02eab9c7f837d6c7d)]
+[![ScreenShot](https://i.paste.pics/3d7bf86f18e3a6d02eab9c7f837d6c7d.png)]
 
 Video with visualization of a robot.
 
