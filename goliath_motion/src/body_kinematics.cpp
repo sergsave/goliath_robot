@@ -131,6 +131,8 @@ void BodyKinematics::calculateJntAngles(
   calculateJntAngles(fin_positions, jnt);
 }
 
+// clearances for all legs are equal, so we can just get clearance for
+// first leg
 double BodyKinematics::getClearance() { return legs_[LF].getDefaultPos().z; }
 
 void BodyKinematics::getLegsJntName(std::vector<std::string>& names)

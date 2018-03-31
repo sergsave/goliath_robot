@@ -73,6 +73,7 @@ private:
 
   // forward kinematics
   LegPos calculateDefaultPos();
+  // crash protection
   bool checkAngles(Angles&) const;
 
   std::array<Segment, NUMBER_OF_SEGMENTS> segs_;

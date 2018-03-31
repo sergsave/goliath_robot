@@ -35,6 +35,7 @@ public:
     NUMBER_OF_LEGS
   };
 
+  // Rotation offset is used when robot turns
   struct StanceOfLeg
   {
     StanceOfLeg() : rot_offset(0) {}
