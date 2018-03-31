@@ -25,7 +25,7 @@ public:
     motion_cmd_pub_ =
         nh_.advertise<goliath_msgs::MotionCmd>("motion_cmd", PUB_QUEUE_SZ);
 
-    ROS_INFO_STREAM("Place for description!");
+    printInstruction();
     switchConsoleBuffState(false);
   }
 
@@ -85,13 +85,56 @@ private:
   static const Speed RIPPLE_SPEED;
   static const Speed BODY_SPEED;
 
-  static constexpr KeyJoystick KEY_JOY_MOVE{'w', 's', 'a', 'd', 'q', 'e'};
-  static constexpr KeyJoystick KEY_JOY_MOVE_FAST{'W', 'S', 'A', 'D', 'Q', 'E'};
-  static constexpr KeyJoystick KEY_JOY_ROT_BODY{'i', 'k', 'j', 'l', 'u', 'o'};
-  static constexpr KeyJoystick KEY_JOY_TR_BODY{'I', 'K', 'J', 'L', 'U', 'O'};
+  static const KeyJoystick KEY_JOY_MOVE;
+  static const KeyJoystick KEY_JOY_MOVE_FAST;
+  static const KeyJoystick KEY_JOY_ROT_BODY;
+  static const KeyJoystick KEY_JOY_TR_BODY;
+  static const std::array<KeyCode, DUMMY_MODE> KEYCODES_MODE;
+  static const KeyCode KEYCODE_LEG_SEL;
+  static const KeyCode KEYCODE_HELP;
 
-  static const std::array<KeyCode, DUMMY_MODE> MODE_KEYCODES;
-  static const KeyCode LEG_SEL_KEYCODE = '\t';
+  friend std::ostream& operator<<(std::ostream& os, const KeyJoystick& kj)
+  {
+    std::string sp("  ");
+    os << sp << kj.turn_l << sp << kj.forw << sp << kj.turn_r << sp << endl
+       << sp << kj.left << sp << kj.backw << sp << kj.right << sp << endl;
+    return os;
+  }
+
+  void printInstruction()
+  {
+    std::string mode_msg;
+    static const std::array<std::string, DUMMY_MODE> mode_names{
+        "Single leg mode", "Tripod walking mode", "Wave walking mode",
+        "Ripple walking mode"};
+
+    std::string leg_sel_keycode(1, KEYCODE_LEG_SEL); // KEYCODE_LEG_SEL;
+    if (KEYCODE_LEG_SEL == '\t')
+      leg_sel_keycode = "Tab";
+
+    for (std::size_t m = SINGLE_LEG_MODE; m != DUMMY_MODE; m++)
+      mode_msg += "  " + mode_names[m] + " - " + KEYCODES_MODE[m] + '\n';
+
+    ROS_INFO_STREAM(endl
+                    << "Keyboard teleop controller for Goliath robot." << endl
+                    << endl
+                    << "To select a mode, use keys:" << endl
+                    << mode_msg << endl
+                    << "For legs and movement control:" << endl
+                    << KEY_JOY_MOVE << endl
+                    << "For faster speed: " << endl
+                    << KEY_JOY_MOVE_FAST << endl
+                    << "To control the rotation of the body:" << endl
+                    << KEY_JOY_ROT_BODY << endl
+                    << "To control the translation of the body:" << endl
+                    << KEY_JOY_TR_BODY << endl
+                    << "In " << mode_names[SINGLE_LEG_MODE] << " use key "
+                    << leg_sel_keycode << " for leg change." << endl
+                    << endl
+                    << "Press " << KEYCODE_HELP
+                    << " to print this instuction again." << endl
+                    << "Press Ctrl+c to exit.");
+  }
 
   goliath_msgs::MotionCmd createMotionCmdMsg(TeleopMode mode)
   {
@@ -119,129 +162,100 @@ private:
   bool updateGaitOrLegVel(KeyCode kc, geometry_msgs::Twist& gait_vel,
                           geometry_msgs::Vector3& leg_vel, Speed speed)
   {
-    bool ret = true;
-    int koef = 1;
-    switch (kc)
+    double koef = 1;
+
+    if (kc == KEY_JOY_MOVE_FAST.forw || kc == KEY_JOY_MOVE.forw)
     {
-    case KEY_JOY_MOVE_FAST.forw:
-      koef = 2;
-    case KEY_JOY_MOVE.forw:
+      koef = kc == KEY_JOY_MOVE.forw ? 1 : 2;
       gait_vel.linear.x = koef * speed.linear;
       leg_vel.x = koef * speed.linear;
-      break;
-
-    case KEY_JOY_MOVE_FAST.backw:
-      koef = 2;
-    case KEY_JOY_MOVE.backw:
+    }
+    else if (kc == KEY_JOY_MOVE_FAST.backw || kc == KEY_JOY_MOVE.backw)
+    {
+      koef = kc == KEY_JOY_MOVE.backw ? 1 : 2;
       gait_vel.linear.x = -koef * speed.linear;
       leg_vel.x = -koef * speed.linear;
-      break;
-
-    case KEY_JOY_MOVE_FAST.left:
-      koef = 2;
-    case KEY_JOY_MOVE.left:
+    }
+    else if (kc == KEY_JOY_MOVE_FAST.left || kc == KEY_JOY_MOVE.left)
+    {
+      koef = kc == KEY_JOY_MOVE.left ? 1 : 2;
       gait_vel.linear.y = koef * speed.linear;
       leg_vel.y = koef * speed.linear;
-      break;
-
-    case KEY_JOY_MOVE_FAST.right:
-      koef = 2;
-    case KEY_JOY_MOVE.right:
+    }
+    else if (kc == KEY_JOY_MOVE_FAST.right || kc == KEY_JOY_MOVE.right)
+    {
+      koef = kc == KEY_JOY_MOVE.right ? 1 : 2;
       gait_vel.linear.y = -koef * speed.linear;
       leg_vel.y = -koef * speed.linear;
-      break;
-
-    case KEY_JOY_MOVE_FAST.turn_l:
-      koef = 2;
-    case KEY_JOY_MOVE.turn_l:
+    }
+    else if (kc == KEY_JOY_MOVE_FAST.turn_l || kc == KEY_JOY_MOVE.turn_l)
+    {
+      koef = kc == KEY_JOY_MOVE.turn_l ? 1 : 2;
       gait_vel.angular.z = koef * speed.angular;
       leg_vel.z = koef * speed.linear;
-      break;
-
-    case KEY_JOY_MOVE_FAST.turn_r:
-      koef = 2;
-    case KEY_JOY_MOVE.turn_r:
+    }
+    else if (kc == KEY_JOY_MOVE_FAST.turn_r || kc == KEY_JOY_MOVE.turn_r)
+    {
+      koef = kc == KEY_JOY_MOVE.turn_r ? 1 : 2;
       gait_vel.angular.z = -koef * speed.angular;
       leg_vel.z = -koef * speed.linear;
-      break;
-
-    default:
-      if (kc == LEG_SEL_KEYCODE || kc == MODE_KEYCODES[SINGLE_LEG_MODE])
-        leg_vel.z = koef * speed.linear / 5;
-      else
-        ret = false;
-      break;
     }
+    else if (kc == KEYCODE_LEG_SEL || kc == KEYCODES_MODE[SINGLE_LEG_MODE])
+    {
+      koef = 0.2;
+      leg_vel.z = koef * speed.linear;
+    }
+    else
+      return false;
 
-    return ret;
+    return true;
   }
 
   bool updateBodyVel(KeyCode kc, geometry_msgs::Twist& body_vel)
   {
-    bool ret = true;
+    double koef = 1;
 
-    switch (kc)
+    if (kc == KEY_JOY_TR_BODY.forw || kc == KEY_JOY_TR_BODY.backw)
     {
-    case KEY_JOY_TR_BODY.forw:
-      body_vel.linear.x = BODY_SPEED.linear;
-      break;
-
-    case KEY_JOY_TR_BODY.backw:
-      body_vel.linear.x = -BODY_SPEED.linear;
-      break;
-
-    case KEY_JOY_TR_BODY.left:
-      body_vel.linear.y = BODY_SPEED.linear;
-      break;
-
-    case KEY_JOY_TR_BODY.right:
-      body_vel.linear.y = -BODY_SPEED.linear;
-      break;
-
-    case KEY_JOY_TR_BODY.turn_l:
-      body_vel.linear.z = BODY_SPEED.linear;
-      break;
-
-    case KEY_JOY_TR_BODY.turn_r:
-      body_vel.linear.z = -BODY_SPEED.linear;
-      break;
-
-    case KEY_JOY_ROT_BODY.forw:
-      body_vel.angular.y = BODY_SPEED.angular;
-      break;
-
-    case KEY_JOY_ROT_BODY.backw:
-      body_vel.angular.y = -BODY_SPEED.angular;
-      break;
-
-    case KEY_JOY_ROT_BODY.left:
-      body_vel.angular.x = BODY_SPEED.angular;
-      break;
-
-    case KEY_JOY_ROT_BODY.right:
-      body_vel.angular.x = -BODY_SPEED.angular;
-      break;
-
-    case KEY_JOY_ROT_BODY.turn_l:
-      body_vel.angular.z = BODY_SPEED.angular;
-      break;
-
-    case KEY_JOY_ROT_BODY.turn_r:
-      body_vel.angular.z = -BODY_SPEED.angular;
-      break;
-
-    default:
-      ret = false;
-      break;
+      koef = (kc == KEY_JOY_TR_BODY.forw) ? 1 : -1;
+      body_vel.linear.x = koef * BODY_SPEED.linear;
     }
-    return ret;
+    else if (kc == KEY_JOY_TR_BODY.left || kc == KEY_JOY_TR_BODY.right)
+    {
+      koef = (kc == KEY_JOY_TR_BODY.left) ? 1 : -1;
+      body_vel.linear.y = koef * BODY_SPEED.linear;
+    }
+    else if (kc == KEY_JOY_TR_BODY.turn_l || kc == KEY_JOY_TR_BODY.turn_r)
+    {
+      koef = (kc == KEY_JOY_TR_BODY.turn_l) ? 1 : -1;
+      body_vel.linear.z = koef * BODY_SPEED.linear;
+    }
+    else if (kc == KEY_JOY_ROT_BODY.forw || kc == KEY_JOY_ROT_BODY.backw)
+    {
+      koef = (kc == KEY_JOY_ROT_BODY.forw) ? 1 : -1;
+      body_vel.angular.y = koef * BODY_SPEED.angular;
+    }
+    else if (kc == KEY_JOY_ROT_BODY.left || kc == KEY_JOY_ROT_BODY.right)
+    {
+      koef = (kc == KEY_JOY_ROT_BODY.left) ? 1 : -1;
+      body_vel.angular.x = -koef * BODY_SPEED.angular;
+    }
+    else if (kc == KEY_JOY_ROT_BODY.turn_l || kc == KEY_JOY_ROT_BODY.turn_r)
+    {
+      koef = (kc == KEY_JOY_ROT_BODY.turn_l) ? 1 : -1;
+      body_vel.angular.z = koef * BODY_SPEED.angular;
+    }
+    else
+      return false;
+
+    return true;
   }
 
   bool updateMode(KeyCode kc, TeleopMode& mode)
   {
     for (std::size_t m = SINGLE_LEG_MODE; m != DUMMY_MODE; ++m)
     {
-      if (kc == MODE_KEYCODES[m])
+      if (kc == KEYCODES_MODE[m])
       {
         mode = static_cast<TeleopMode>(m);
         return true;
@@ -259,7 +273,7 @@ private:
     // use low-level function getchar (cin doesn't work with unbuffered input)
     KeyCode kc = getchar();
 
-    if (kc == LEG_SEL_KEYCODE && mode_ == SINGLE_LEG_MODE)
+    if (kc == KEYCODE_LEG_SEL && mode_ == SINGLE_LEG_MODE)
     {
       if (single_leg_number_++ == MAX_LEG_NUMBER - 1)
         single_leg_number_ = 0;
@@ -293,6 +307,9 @@ private:
       if (updateGaitOrLegVel(kc, gait_vel, dummy, walk_speed))
         gait_vel_pub_.publish(gait_vel);
     }
+
+    if(kc == KEYCODE_HELP)
+      printInstruction();
   }
 
   // disable or enable buffering input
@@ -341,8 +358,18 @@ const TeleopKey::Speed TeleopKey::WAVE_SPEED{0.015, 0.1};
 const TeleopKey::Speed TeleopKey::RIPPLE_SPEED{0.035, 0.2};
 const TeleopKey::Speed TeleopKey::BODY_SPEED{0.04, 0.35};
 
+const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_MOVE{'w', 's', 'a',
+                                                     'd', 'q', 'e'};
+const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_MOVE_FAST{'W', 'S', 'A',
+                                                          'D', 'Q', 'E'};
+const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_ROT_BODY{'i', 'k', 'j',
+                                                         'l', 'u', 'o'};
+const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_TR_BODY{'I', 'K', 'J',
+                                                        'L', 'U', 'O'};
 const std::array<TeleopKey::KeyCode, TeleopKey::DUMMY_MODE>
-    TeleopKey::MODE_KEYCODES{{'`', '1', '2', '3'}};
+    TeleopKey::KEYCODES_MODE{{'`', '1', '2', '3'}};
+const TeleopKey::KeyCode TeleopKey::KEYCODE_LEG_SEL = '\t';
+const TeleopKey::KeyCode TeleopKey::KEYCODE_HELP = 'h';
 
 int main(int argc, char* argv[])
 {

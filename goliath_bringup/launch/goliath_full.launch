@@ -3,7 +3,7 @@
   <remap from="goliath_motion/joint_states" to="joint_states"/>
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find goliath_description)/urdf/goliath_model.xacro'" />
 
-  <node name="teleop" pkg="goliath_teleop" type="teleop_key" args="0.05 0.05 0.05" output="screen" />
+  <node name="teleop" pkg="goliath_teleop" type="teleop_key" output="screen" />
   <node name="goliath_motion" pkg="goliath_motion" type="goliath_motion" />
   <node pkg="lynxmotion_ssc32" type="ssc32_node" name="ssc32" output="screen">
     <rosparam file="$(find goliath_bringup)/config/ssc32.yaml" command="load"/>
