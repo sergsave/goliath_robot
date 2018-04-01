@@ -89,6 +89,8 @@ private:
 
   static const std::size_t MAX_LEG_NUMBER = 6;
   static const int RATE_VAL = 50;
+  // how fast to move in fast mode
+  static const int FAST_KOEF = 2;
 
   static const Speed SINGLE_LEG_SPEED;
   static const Speed TRIPOD_SPEED;
@@ -183,37 +185,37 @@ private:
 
     if (kc == KEY_JOY_MOVE_FAST.forw || kc == KEY_JOY_MOVE.forw)
     {
-      koef = kc == KEY_JOY_MOVE.forw ? 1 : 2;
+      koef = (kc == KEY_JOY_MOVE.forw) ? 1 : FAST_KOEF;
       gait_vel.linear.x = koef * speed.linear;
       leg_vel.x = koef * speed.linear;
     }
     else if (kc == KEY_JOY_MOVE_FAST.backw || kc == KEY_JOY_MOVE.backw)
     {
-      koef = kc == KEY_JOY_MOVE.backw ? 1 : 2;
+      koef = (kc == KEY_JOY_MOVE.backw) ? 1 : FAST_KOEF;
       gait_vel.linear.x = -koef * speed.linear;
       leg_vel.x = -koef * speed.linear;
     }
     else if (kc == KEY_JOY_MOVE_FAST.left || kc == KEY_JOY_MOVE.left)
     {
-      koef = kc == KEY_JOY_MOVE.left ? 1 : 2;
+      koef = (kc == KEY_JOY_MOVE.left) ? 1 : FAST_KOEF;
       gait_vel.linear.y = koef * speed.linear;
       leg_vel.y = koef * speed.linear;
     }
     else if (kc == KEY_JOY_MOVE_FAST.right || kc == KEY_JOY_MOVE.right)
     {
-      koef = kc == KEY_JOY_MOVE.right ? 1 : 2;
+      koef = (kc == KEY_JOY_MOVE.right) ? 1 : FAST_KOEF;
       gait_vel.linear.y = -koef * speed.linear;
       leg_vel.y = -koef * speed.linear;
     }
     else if (kc == KEY_JOY_MOVE_FAST.turn_l || kc == KEY_JOY_MOVE.turn_l)
     {
-      koef = kc == KEY_JOY_MOVE.turn_l ? 1 : 2;
+      koef = (kc == KEY_JOY_MOVE.turn_l) ? 1 : FAST_KOEF;
       gait_vel.angular.z = koef * speed.angular;
       leg_vel.z = koef * speed.linear;
     }
     else if (kc == KEY_JOY_MOVE_FAST.turn_r || kc == KEY_JOY_MOVE.turn_r)
     {
-      koef = kc == KEY_JOY_MOVE.turn_r ? 1 : 2;
+      koef = (kc == KEY_JOY_MOVE.turn_r) ? 1 : FAST_KOEF;
       gait_vel.angular.z = -koef * speed.angular;
       leg_vel.z = -koef * speed.linear;
     }
