@@ -40,9 +40,6 @@ public:
   void getJntNames(std::vector<std::string>& names);
 
 private:
-  // this array contain more members than segments in the leg,
-  // because there is a additional fixed node - "leg end"
-  static const std::array<std::string, NUMBER_OF_SEGMENTS + 1> JNT_BASE_NAMES;
 
   // coxa - latin's name of shoulder, femur - part from shouler to elbow,
   // tibia - forearms analog in insect body
@@ -53,6 +50,10 @@ private:
     TIBIA,
     NUMBER_OF_SEGMENTS
   };
+
+  // this array contain more members than segments in the leg,
+  // because there is a additional fixed node - "leg end"
+  static const std::array<std::string, NUMBER_OF_SEGMENTS + 1> JNT_BASE_NAMES;
 
   // indivisible part of leg
   struct Segment

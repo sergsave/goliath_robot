@@ -55,16 +55,16 @@ public:
   void calculateJntAngles(const BodyPose&, const LegsStance&,
                           trajectory_msgs::JointTrajectoryPoint&);
 
-  //this method just put 18 names in argument
-  //in the same order as calculateJntAngles methods
-  //be careful with non empty vectors!
+  // this method just put 18 names in argument
+  // in the same order as calculateJntAngles methods
+  // be careful with non empty vectors!
   void getLegsJntName(std::vector<std::string>&);
 
   // default coordinates of legs ends relatively
   // legs root
   LegsStance getDefaultLegsStance();
 
-  //from center of the body to ground
+  // from center of the body to ground
   double getClearance();
 
 private:
@@ -77,6 +77,7 @@ private:
                           trajectory_msgs::JointTrajectoryPoint&);
 
   // urdf::Vector3 doesnt have "-" operator :(
+#warning "is there any way to replace with operator-?"
   urdf::Vector3 invVec(urdf::Vector3 vec)
   {
     return urdf::Vector3(-vec.x, -vec.y, -vec.z);
