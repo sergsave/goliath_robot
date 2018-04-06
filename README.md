@@ -37,7 +37,7 @@ Sends commands based on keystrokes on the keyboard.
 
 ## Media
 
-Robot 3d model sreen
+Robot 3d model screen
 
 [![ScreenShot](https://i.paste.pics/3d7bf86f18e3a6d02eab9c7f837d6c7d.png)]
 

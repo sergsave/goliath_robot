@@ -101,11 +101,16 @@ private:
   // list of buttons used for control
   static const KeyJoystick KEY_JOY_MOVE;
   static const KeyJoystick KEY_JOY_MOVE_FAST;
+  // body rotation and translation
   static const KeyJoystick KEY_JOY_ROT_BODY;
   static const KeyJoystick KEY_JOY_TR_BODY;
   static const std::array<KeyCode, NUMB_OF_MODES> KEYCODES_MODE;
-  static const KeyCode KEYCODE_LEG_SEL;
+  // button for instruction print
   static const KeyCode KEYCODE_HELP;
+  // button for leg select
+  static const KeyCode KEYCODE_LEG_SEL;
+  // button for enable/disable body autoleveling
+  static const KeyCode KEYCODE_SW_BODY_ALVL;
 
   // It is very convenient to write instructions with this method
   friend std::ostream& operator<<(std::ostream& os, const KeyJoystick& kj)
@@ -144,6 +149,8 @@ private:
                     << KEY_JOY_ROT_BODY << endl
                     << "To control the translation of the body:" << endl
                     << KEY_JOY_TR_BODY << endl
+                    << "Use key " << KEYCODE_SW_BODY_ALVL
+                    << " for disable/enable body auto leveling." << endl
                     << "In " << mode_names[SINGLE_LEG_MODE] << " use key "
                     << leg_sel_keycode << " for leg change." << endl
                     << endl
@@ -152,7 +159,7 @@ private:
                     << "Press Ctrl+c to exit.");
   }
 
-  goliath_msgs::MotionCmd createMotionCmdMsg(TeleopMode mode)
+  goliath_msgs::MotionCmd createMotionCmdMsg(KeyCode kc, TeleopMode mode)
   {
     goliath_msgs::MotionCmd ret;
     switch (mode)
@@ -172,6 +179,10 @@ private:
     default:
       break;
     }
+
+    if (kc == KEYCODE_SW_BODY_ALVL)
+      ret.type = goliath_msgs::MotionCmd::SWITCH_BODY_AUTOLEVELING;
+
     return ret;
   }
 
@@ -301,8 +312,8 @@ private:
         single_leg_number_ = 0;
     }
 
-    if (updateMode(kc, mode_))
-      motion_cmd_pub_.publish(createMotionCmdMsg(mode_));
+    if (updateMode(kc, mode_) || kc == KEYCODE_SW_BODY_ALVL)
+      motion_cmd_pub_.publish(createMotionCmdMsg(kc, mode_));
 
     if (updateBodyVel(kc, body_vel))
       body_vel_pub_.publish(body_vel);
@@ -386,13 +397,14 @@ const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_MOVE{'w', 's', 'a',
                                                      'd', 'q', 'e'};
 const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_MOVE_FAST{'W', 'S', 'A',
                                                           'D', 'Q', 'E'};
-const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_ROT_BODY{'i', 'k', 'j',
-                                                         'l', 'u', 'o'};
-const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_TR_BODY{'I', 'K', 'J',
-                                                        'L', 'U', 'O'};
+const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_TR_BODY{'i', 'k', 'j',
+                                                        'l', 'u', 'o'};
+const TeleopKey::KeyJoystick TeleopKey::KEY_JOY_ROT_BODY{'I', 'K', 'J',
+                                                         'L', 'U', 'O'};
 const std::array<TeleopKey::KeyCode, TeleopKey::NUMB_OF_MODES>
     TeleopKey::KEYCODES_MODE{{'`', '1', '2', '3'}};
 const TeleopKey::KeyCode TeleopKey::KEYCODE_LEG_SEL = '\t';
+const TeleopKey::KeyCode TeleopKey::KEYCODE_SW_BODY_ALVL = 'f';
 const TeleopKey::KeyCode TeleopKey::KEYCODE_HELP = 'h';
 
 int main(int argc, char* argv[])

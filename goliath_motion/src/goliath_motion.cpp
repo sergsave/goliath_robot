@@ -1,9 +1,9 @@
-// Copyright  (C)  2007  Francois Cauwe <francois at cauwe dot org>
-
-// This library is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 2.1 of the License, or (at your option) any later version.
+/*
+ * goliath_motion.cpp
+ *
+ *  Created on: 06 янв. 2018 г.
+ *      Author: sergey
+ */
 
 #include "ros/ros.h"
 #include <string>
@@ -31,7 +31,7 @@ public:
   GoliathMotion(ros::NodeHandle node)
       : nh_(node), private_nh_("~"),
         last_gait_or_legs_command_time_(ros::Time::now()),
-        last_body_command_time_(ros::Time::now())
+        last_body_command_time_(ros::Time::now()), auto_lvl_state_(IDLE)
   {
     urdf::Model model;
 
@@ -74,12 +74,26 @@ public:
     while (ros::ok())
     {
       updateAndMove();
+      // stop the robot if there are no commands
       resetVelocities();
       ros::spinOnce();
     }
   }
 
 private:
+  static const int SUB_QUEUE_SZ = 10;
+  static const int JNT_TRAJ_QUEUE_SZ = 10;
+  static const int TF_QUANTITY_PER_STEP = 5;
+  static const double MOVE_TIME_STEP, VEL_RESET_TIMEOUT;
+  static const int AUTO_LEVELING_STEPS_QUANTITY = 10;
+
+  enum BodyAutoLevelingState
+  {
+    DISABLE,
+    IDLE,
+    IN_PROCESS
+  };
+
   void updateAndMove()
   {
     BodyKinematics::LegsStance new_legs_stance = curr_legs_stance_;
@@ -126,9 +140,64 @@ private:
     if (ros::Time::now() - last_body_command_time_ >
         ros::Duration(VEL_RESET_TIMEOUT))
     {
-      // set vel to zero
-      body_velocity_ = geometry_msgs::Twist();
+      // if autoleveling is enable - move body to default pose
+      switch (auto_lvl_state_)
+      {
+      case IDLE:
+        if (!isBodyPoseDefault())
+        {
+          startAutoLeveling();
+          auto_lvl_state_ = IN_PROCESS;
+        }
+        break;
+
+      case IN_PROCESS:
+        if (isBodyPoseDefault())
+        {
+          body_velocity_ = geometry_msgs::Twist();
+          auto_lvl_state_ = IDLE;
+        }
+        break;
+
+      case DISABLE:
+        // just reset to zero
+        body_velocity_ = geometry_msgs::Twist();
+        break;
+
+      default:
+        break;
+      }
     }
+  }
+
+  // move body to default pose
+  void startAutoLeveling()
+  {
+    static const double alv_time =
+        AUTO_LEVELING_STEPS_QUANTITY * MOVE_TIME_STEP;
+
+    double r, p, y;
+    curr_body_pose_.rotation.getRPY(r, p, y);
+    body_velocity_.angular.x = -r / alv_time;
+    body_velocity_.angular.y = -p / alv_time;
+    body_velocity_.angular.z = -y / alv_time;
+
+    body_velocity_.linear.x = -curr_body_pose_.position.x / alv_time;
+    body_velocity_.linear.y = -curr_body_pose_.position.y / alv_time;
+    body_velocity_.linear.z = -curr_body_pose_.position.z / alv_time;
+  }
+
+  // maybe change it to lambda?
+  bool isZero(double d) { return d < 0.0001 && d > -0.0001; }
+
+  bool isBodyPoseDefault()
+  {
+    double r, p, y;
+    curr_body_pose_.rotation.getRPY(r, p, y);
+    urdf::Vector3 pos = curr_body_pose_.position;
+
+    return isZero(pos.x) && isZero(pos.y) && isZero(pos.z) && isZero(r) &&
+           isZero(p) && isZero(y);
   }
 
   // all callbacks are automatically called in spin() method
@@ -143,6 +212,8 @@ private:
   {
     body_velocity_ = tw;
     last_body_command_time_ = ros::Time::now();
+    if (auto_lvl_state_ != DISABLE)
+      auto_lvl_state_ = IDLE;
   }
 
   void legsVelCallback(const goliath_msgs::LegsVel& legs_vel)
@@ -157,10 +228,13 @@ private:
       gait_.setType(GaitGenerator::TRIPOD);
     else if (cmd.type == goliath_msgs::MotionCmd::SELECT_WAVE_GAIT)
       gait_.setType(GaitGenerator::WAVE);
-    if (cmd.type == goliath_msgs::MotionCmd::SELECT_RIPPLE_GAIT)
+    else if (cmd.type == goliath_msgs::MotionCmd::SELECT_RIPPLE_GAIT)
       gait_.setType(GaitGenerator::RIPPLE);
+    else if (cmd.type == goliath_msgs::MotionCmd::SWITCH_BODY_AUTOLEVELING)
+      auto_lvl_state_ = (auto_lvl_state_ == DISABLE) ? IDLE : DISABLE;
   }
 
+  // change Legs, Body position according to speed and delta t
   void shiftLegsStance(BodyKinematics::LegsStance& new_ls, double dt)
   {
     for (std::size_t l = 0; l != new_ls.size(); ++l)
@@ -186,6 +260,7 @@ private:
     new_bp.position = new_bp.position + delta;
   }
 
+  // change robot's position in a space according to speed and delta t
   void shiftTravelState(urdf::Pose& new_st, double dt)
   {
     double roll, pitch, yaw;
@@ -201,6 +276,7 @@ private:
     new_st.position = new_st.position + delta;
   }
 
+  // try to generate move trajectory
   bool createJntTraj(const BodyKinematics::LegsStance& ls,
                      const BodyKinematics::BodyPose& bp, double dur,
                      trajectory_msgs::JointTrajectory& traj)
@@ -230,9 +306,9 @@ private:
   void waitAndPublishTf(double time, BodyKinematics::BodyPose pose,
                         urdf::Pose travel_st)
   {
-    const double tf_pub_period = time / TF_NUMBERS_PER_STEP;
+    const double tf_pub_period = time / TF_QUANTITY_PER_STEP;
 
-    for (std::size_t i = 0; i != TF_NUMBERS_PER_STEP; ++i)
+    for (std::size_t i = 0; i != TF_QUANTITY_PER_STEP; ++i)
     {
       publishTransformToBase(pose);
       publishTransformToWorld(travel_st);
@@ -291,16 +367,12 @@ private:
         tf::StampedTransform(transform, ros::Time::now(), "rot_base", "world"));
   }
 
-  static const int SUB_QUEUE_SZ = 10;
-  static const int JNT_TRAJ_QUEUE_SZ = 10;
-  static const int TF_NUMBERS_PER_STEP = 5;
-  static const double MOVE_TIME_STEP, VEL_RESET_TIMEOUT;
-
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
 
   BodyKinematics body_;
   GaitGenerator gait_;
+  BodyAutoLevelingState auto_lvl_state_;
 
   ros::Subscriber gait_vel_sub_;
   ros::Subscriber body_vel_sub_;
