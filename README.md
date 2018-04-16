@@ -20,7 +20,7 @@ Contain STL 3d models of robot parts and XML description.
 
 **_goliath_motion_**
 
-Convert command from teleop controller (legs, body, gait control) to
+Cpp Source Code! Convert command from teleop controller (legs, body, gait control) to
 signals for motors driver.
 
 **_goliath_msgs_**
@@ -29,11 +29,11 @@ My custom messages for ROS topics.
 
 **_goliath_simulation_**
 
-Auxiliary stuff for simulation and visualization, such as servo-motors emulator.
+Cpp Source Code! Auxiliary stuff for simulation and visualization, such as servo-motors emulator.
 
 **_goliath_teleop_**
 
-Sends commands based on keystrokes on the keyboard.
+Cpp Source Code! Sends commands based on keystrokes on the keyboard.
 
 ## Media
 
@@ -44,4 +44,4 @@ Robot 3d model screen
 Video with visualization of a robot.
 
 [![ScreenShot](http://img.youtube.com/vi/lGk0WovRYYo/0.jpg)]
-(https://www.youtube.com/watch?v=lGk0WovRYYo)
+(https://www.youtube.com/watch?v=tgWmmHb4pjg)
